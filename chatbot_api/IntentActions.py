@@ -3,7 +3,8 @@ import random
 from chatbot_api.faq_logic.longchain_helper import get_qa_chain
 from chatbot_api.utils.contstants import CANCEL_ACTION
 from chatbot_api.utils.nlu import entity_extraction
-from chatbot_api.utils.util_functions import filter_operations, get_cartes_message, get_operations_message
+from chatbot_api.utils.util_functions import filter_operations, get_cartes_message, get_operations_message, \
+    get_comptes_message, get_agences_messages
 
 
 class IntentActions:
@@ -33,18 +34,8 @@ class IntentActions:
         else:
             user_id = json_data["userId"]
             agences = self.spring_api.get_data(f"agences/userAddress/{user_id}")
-        if agences:
-            if len(agences) == 1:  # Cas où il n'y a qu'une seule agence
-                agence = agences[0]
-                message = f"Vous pouvez trouver notre agence {agence['nomAgence']} située au {agence['adresse']}. Elle est ouverte de {agence['horairesOuverture']} et propose les services suivants : {agence['servicesDisponibles']}. Vous pouvez également la contacter au {agence['telephone']}."
-            else:  # Cas où il y a plusieurs agences
-                message = "Voici les agences les plus proches :\n"
-                for agence in agences:
-                    message += f"- {agence['nomAgence']} située au {agence['adresse']}. Elle est ouverte de {agence['horairesOuverture']} et propose les services suivants : {agence['servicesDisponibles']}. Vous pouvez également la contacter au {agence['telephone']}.\n"
-        else:
-            message = "Aucune agence n'est trouvée."
 
-        return message
+        return get_agences_messages(agences)
 
     def consultation_solde_action(self, data, patterns):
         text = data['text'].lower()
@@ -53,32 +44,19 @@ class IntentActions:
         entities_ner_bert, entities_ner_regex = entity_extraction(text, patterns)
         if entities_ner_bert is None and entities_ner_regex is None:
             comptes = self.spring_api.get_data(f"comptes/user/{userid}")
-            if not comptes:
-                return "Désolé, je n'ai trouvé aucun compte associé à votre compte."
+            return get_comptes_message(comptes)
         elif entities_ner_regex is not None:
             for patternName, value in entities_ner_regex.items():
                 entities_dict[patternName] = value
-
             response_body = {"userId": userid, "entitiesDic": entities_dict}
             comptes = self.spring_api.post_data('/comptes/searchEntitiesDict', response_body)
-            if comptes:
-                if len(comptes) == 1:
-                    compte = comptes[0]
-                    message = f"Le solde disponible sur votre compte {compte['typeCompte']} est de {compte['solde']} dirhams."
-                else:
-                    message = "Voici les soldes de vos comptes bancaires :\n\n"
-                    for compte in comptes:
-                        message += f"Compte {compte['typeCompte']}: {compte['solde']} dirhams.\n\n"
-                return message
-            else:
-                return "Une erreur s'est produite lors de la récupération des comptes."
-
+            return get_comptes_message(comptes)
     def consultation_cartes_action(self, data, patterns):
         text = data['text'].lower()
         userid = data['userId']
         entities_dict = {}
+        request_list = []
         _, entities_ner_regex = entity_extraction(text, patterns)
-        # verify_demand_ner = verify_demand(text)
         if entities_ner_regex is None:
             cartes = self.spring_api.get_data(f"cartes/user/{userid}")
             if cartes:
@@ -87,7 +65,10 @@ class IntentActions:
                 return "Désolé, je n'ai trouvé aucune carte associée à votre compte."
         elif entities_ner_regex is not None:
             for patternName, value in entities_ner_regex.items():
-                entities_dict[patternName] = value
+                if 'demande_' not in patternName:
+                    entities_dict[patternName] = value
+                else:
+                    request_list.append(patternName)
             response_body = {"userId": userid, "entitiesDic": entities_dict}
             cartes = self.spring_api.post_data('/cartes/searchEntitiesDict', response_body)
             if cartes:
@@ -285,8 +266,8 @@ class IntentActions:
 
         if entities_ner_regex:
             rib = entities_ner_regex.get('rib')
-        new_extracted_entities = [locals().get(entity) for entity in required_entities if
-                                  locals().get(entity) is not None]
+        new_extracted_entities = {entity: locals().get(entity) for entity in required_entities if
+                                  locals().get(entity) is not None}
         merged_entities = {**extracted_entities, **new_extracted_entities}
         if context == "Confirmation_Action":
             if len(extracted_entities) == 2:
@@ -403,8 +384,8 @@ class IntentActions:
             oldRib = entities_ner_regex.get('rib')[0]
             newRib = entities_ner_regex.get('rib')[1]
 
-        new_extracted_entities = [locals().get(entity) for entity in required_entities if
-                                  locals().get(entity) is not None]
+        new_extracted_entities = {entity: locals().get(entity) for entity in required_entities if
+                                  locals().get(entity) is not None}
         merged_entities = {**extracted_entities, **new_extracted_entities}
         if context == "Confirmation_Action":
             if len(extracted_entities) == 3:
@@ -507,8 +488,8 @@ class IntentActions:
             typeCompte = entities_ner_regex.get('typeCompte')
             numeroFacture = entities_ner_regex.get('numeroFacture')
             numeroCompte = entities_ner_regex.get('numeroCompte')
-        new_extracted_entities = [locals().get(entity) for entity in required_entities if
-                                  locals().get(entity) is not None]
+        new_extracted_entities = {entity: locals().get(entity) for entity in required_entities if
+                                  locals().get(entity) is not None}
         merged_entities = {**extracted_entities, **new_extracted_entities}
         if context == "Confirmation_Action":
             if len(extracted_entities) == 2:
@@ -702,8 +683,8 @@ class IntentActions:
             numeroCarte = entities_ner_regex.get('numeroCarte')
             services = entities_ner_regex.get('services')
 
-        new_extracted_entities = [locals().get(entity) for entity in required_entities if
-                                  locals().get(entity) is not None]
+        new_extracted_entities = {entity: locals().get(entity) for entity in required_entities if
+                                  locals().get(entity) is not None}
         merged_entities = {**extracted_entities, **new_extracted_entities}
         if context == "Confirmation_Action":
             if len(extracted_entities) == 2:
@@ -776,8 +757,8 @@ class IntentActions:
             typePlafond = entities_ner_regex.get('typePlafond')
             plafond = entities_ner_regex.get('montant')
 
-        new_extracted_entities = [locals().get(entity) for entity in required_entities if
-                                  locals().get(entity) is not None]
+        new_extracted_entities = {entity: locals().get(entity) for entity in required_entities if
+                                  locals().get(entity) is not None}
         merged_entities = {**extracted_entities, **new_extracted_entities}
         if context == "Confirmation_Action":
             if len(extracted_entities) == 2:
@@ -854,8 +835,8 @@ class IntentActions:
             numeroCarte = entities_ner_regex.get('numeroCarte')
             raisonsOpposition = entities_ner_regex.get('raisonsOpposition')
 
-        new_extracted_entities = [locals().get(entity) for entity in required_entities if
-                                  locals().get(entity) is not None]
+        new_extracted_entities = {entity: locals().get(entity) for entity in required_entities if
+                                  locals().get(entity) is not None}
         merged_entities = {**extracted_entities, **new_extracted_entities}
         if context == "Confirmation_Action":
             if len(extracted_entities) == 2:
@@ -913,3 +894,207 @@ class IntentActions:
 
     def action_complete_plafond_diminuer(self, data, extracted_entities, patterns, context):
         return self.action_complete_plafond(data, extracted_entities, patterns, context, "Diminuer")
+
+    def action_complete_ajout_transaction_virement(self, data, extracted_entities, patterns, context):
+        text = data['text'].lower()
+        userid = data['userId']
+        entities_ner_bert, entities_ner_regex = entity_extraction(text, patterns)
+        required_entities = ['typeCompte', 'nom', 'prenom', 'montant', 'typeOperation']
+        new_extracted_entities = {}
+        typeCompte = None
+        numeroCompte = None
+        ribBeneficiaire = None
+        typeOperation = None
+        montant = None
+        motif = None
+        if entities_ner_regex:
+            typeCompte = entities_ner_regex.get('typeCompte')
+            numeroCompte = entities_ner_regex.get('numeroCompte')
+            typeOperation = entities_ner_regex.get('typeOperation')
+            montant = entities_ner_regex.get('montant')
+            motif = entities_ner_regex.get('motif')
+            ribBeneficiaire = entities_ner_regex('rib')
+
+        if entities_ner_bert:
+            for entity in entities_ner_bert:
+                if entity['entity_group'] == 'PER':
+                    prenom = entity['word'].split(" ")[0].capitalize()
+                    nom = entity['word'].split(" ")[1].capitalize()
+
+        new_extracted_entities = {entity: locals().get(entity) for entity in required_entities if
+                                  locals().get(entity) is not None}
+        if motif: new_extracted_entities['motif'] = motif
+        if ribBeneficiaire: new_extracted_entities['rib'] = ribBeneficiaire
+        if numeroCompte: new_extracted_entities['numeroCompte'] = numeroCompte
+        merged_entities = {**extracted_entities, **new_extracted_entities}
+        if context == "Confirmation_Action":
+            if ['typeCompte', 'nom', 'prenom', 'montant', 'typeOperation'] in extracted_entities.keys():
+                response_body = {
+                    "userId": userid,
+                    "compte": {
+                        'typeCompte': extracted_entities.get('typeCompte')
+                    },
+                    "beneficiaire": {
+                        "nom": extracted_entities.get('nom'),
+                        "prenom": extracted_entities.get('prenom')
+                    },
+                    "operation": {
+                        "motif": extracted_entities.get('motif') if extracted_entities.get('motif') else "",
+                        'montant': extracted_entities.get('montant'),
+                        'typeOperation': extracted_entities('typeOperation')
+                    }
+                }
+                message = self.spring_api.post_data('/operations/addByAccountTypeBeneficiaryNames', response_body)
+                return None, message, []
+            elif ['typeCompte', 'rib', 'montant', 'typeOperation'] in extracted_entities.keys():
+                response_body = {
+                    "userId": userid,
+                    "compte": {
+                        'typeCompte': extracted_entities.get('typeCompte')
+                    },
+                    "beneficiaire": {
+                        "rib": extracted_entities.get('rib')
+                    },
+                    "operation": {
+                        "motif": extracted_entities.get('motif') if extracted_entities.get('motif') else "",
+                        'montant': extracted_entities.get('montant'),
+                        'typeOperation': extracted_entities('typeOperation')
+                    }
+                }
+                message = self.spring_api.post_data('/operations/addByAccountTypeAndRib', response_body)
+                return None, message, []
+            elif ['numeroCompte', 'rib', 'montant', 'typeOperation'] in extracted_entities.keys():
+                response_body = {
+                    "userId": userid,
+                    "compte": {
+                        'numeroCompte': extracted_entities.get('numeroCompte')
+                    },
+                    "beneficiaire": {
+                        "rib": extracted_entities.get('rib')
+                    },
+                    "operation": {
+                        "motif": extracted_entities.get('motif') if extracted_entities.get('motif') else "",
+                        'montant': extracted_entities.get('montant'),
+                        'typeOperation': extracted_entities('typeOperation')
+                    }
+                }
+                message = self.spring_api.post_data('/operations/addByAccountNumAndRib', response_body)
+                return None, message, []
+            elif ['numeroCompte', 'nom', 'prenom', 'montant', 'typeOperation'] in extracted_entities.keys():
+                response_body = {
+                    "userId": userid,
+                    "compte": {
+                        'numeroCompte': extracted_entities.get('numeroCompte'),
+
+                    },
+                    "beneficiaire": {
+                        "nom": extracted_entities.get('nom'),
+                        "prenom": extracted_entities.get('prenom'),
+                    },
+                    "operation": {
+                        'montant': extracted_entities.get('montant'),
+                        'typeOperation': extracted_entities('typeOperation')
+                    }
+                }
+                message = self.spring_api.post_data('/operations/addByAccountNumBeneficiaryNames', response_body)
+                return None, message, []
+        elif context == "Annulation_Action":
+            message = random.choice(CANCEL_ACTION)
+            return None, message, []
+        elif context == "Missing_Entity":
+            if extracted_entities.keys() == required_entities:
+                if 'besoin_numeroCompte' in extracted_entities.keys():
+                    if numeroCompte is None:
+                        message = "Veuillez préciser votre numéro de compte!"
+                        return "Entity_Missing_Transaction_Virement", message, merged_entities
+                    else:
+                        message = f"Vous souhaitez passer un virement {merged_entities.get('typeOperation')} pour {merged_entities.get('nom')} {merged_entities.get('prenom')} avec le montant {merged_entities.get('montant')} dirhams avec votre compte {merged_entities.get('typeCompte')}. Merci de confirmer!"
+                        return "Request_Validation_Transaction_Virement", message, merged_entities
+                elif 'besoin_ribBeneficiaire' in extracted_entities.keys():
+                    if ribBeneficiaire is None:
+                        message = "Veuillez préciser le RIB du bénéficiaire!"
+                        return "Entity_Missing_Transaction_Virement", message, merged_entities
+                    else:
+                        message = f"Vous souhaitez passer un virement {merged_entities.get('typeOperation')} pour {merged_entities.get('nom')} {merged_entities.get('prenom')} avec le montant {merged_entities.get('montant')} dirhams avec votre compte {merged_entities.get('typeCompte')}. Merci de confirmer!"
+                        return "Request_Validation_Transaction_Virement", message, merged_entities
+                elif 'besoin_ribBeneficiaire' and 'besoin_numeroCompte' in extracted_entities.keys():
+                    if numeroCompte is None or ribBeneficiaire is None:
+                        message = "Veuillez préciser le RIB du bénéficiaire et le numéro de votre compte bancaire!"
+                        return "Entity_Missing_Transaction_Virement", message, merged_entities
+                    else:
+                        message = f"Vous souhaitez passer un virement {merged_entities.get('typeOperation')} pour {merged_entities.get('nom')} {merged_entities.get('prenom')} avec le montant {merged_entities.get('montant')} dirhams avec votre compte {merged_entities.get('typeCompte')}. Merci de confirmer!"
+                        return "Request_Validation_Transaction_Virement", message, merged_entities
+            else:
+                missing_entities = [entity for entity in required_entities if entity not in extracted_entities]
+                if missing_entities:
+                    message = "Désolé, vous n'avez pas spécifié le  : " + ', '.join(missing_entities)
+                    if len(missing_entities) > 1:
+                        message += ". Veuillez les spécifier."
+                    else:
+                        message += ". Veuillez le spécifier."
+                    return extracted_entities, "Request_Validation_Transaction_Virement", message
+                else:
+                    message = f"Vous souhaitez passer un virement {merged_entities.get('typeOperation')} pour {merged_entities.get('nom')} {merged_entities.get('prenom')} avec le montant {merged_entities.get('montant')} dirhams avec votre compte {merged_entities.get('typeCompte')}. Merci de confirmer!"
+                    return "Request_Validation_Transaction_Virement", message, merged_entities
+
+    def action_ajout_transaction_virement(self, data, patterns):
+        text = data['text'].lower()
+        userid = data['userId']
+        entities_ner_bert, entities_ner_regex = entity_extraction(text, patterns)
+        required_entities = ['typeCompte', 'nom', 'prenom', 'montant', 'typeOperation']
+        extracted_entities = {}
+        typeCompte = None
+        typeOperation = None
+        montant = None
+        motif = None
+        if entities_ner_regex:
+            typeCompte = entities_ner_regex.get('typeCompte')
+            typeOperation = entities_ner_regex.get('typeOperation')
+            montant = entities_ner_regex.get('montant')
+            motif = entities_ner_regex.get('motif')
+
+        if entities_ner_bert:
+            for entity in entities_ner_bert:
+                if entity['entity_group'] == 'PER':
+                    prenom = entity['word'].split(" ")[0].capitalize()
+                    nom = entity['word'].split(" ")[1].capitalize()
+
+        extracted_entities = {entity: locals().get(entity) for entity in required_entities if
+                              locals().get(entity) is not None}
+        if motif: extracted_entities['motif'] = motif
+        missing_entities = [entity for entity in required_entities if locals().get(entity) is None]
+        if missing_entities:
+            message = "Désolé, vous n'avez pas spécifié le : " + ', '.join(
+                missing_entities)
+            if len(missing_entities) > 1:
+                message += ". Veuillez les spécifier."
+            else:
+                message += ". Veuillez le spécifier."
+            return f"Entity_Missing_Transaction_Virement", message, extracted_entities
+        else:
+            comptes = self.check_comptes(userid, extracted_entities)
+            beneficiaries = self.check_beneficiaires(userid, extracted_entities)
+            if comptes and beneficiaries:
+                if len(comptes) == 1:
+                    if len(beneficiaries) == 1:
+                        message = (
+                            f"Vous souhaitez passer un virement {typeOperation} pour {nom} {prenom} avec le montant {montant} dirhams avec votre compte {typeCompte}. Merci de "
+                            f"confirmer cette demande!")
+                        return f"Required_Validation_Transaction_Virement", message, extracted_entities
+                    else:
+                        extracted_entities['besoin_ribBeneficiaire'] = None
+                        message = "Vous avez plusieurs bénéficiaires avec les mêmes noms, merci de préciser le numéro de RIB de votre bénéficiaire"
+                    return f"Entity_Missing_Transaction_Virement", message, extracted_entities
+                else:
+                    if len(beneficiaries) == 1:
+                        extracted_entities['besoin_numCompte'] = None
+                        message = "Vous avez plusieurs comptes du même type, merci de préciser le numéro de compte avec lequel vous souhaiter passer le virement!"
+                        return f"Entity_Missing_Transaction_Virement", message, extracted_entities
+                    else:
+                        extracted_entities['besoin_ribBeneficiaire'] = None
+                        extracted_entities['besoin_numCompte'] = None
+                        message = "Vous avez plusieurs comptes du même type et plusieurs bénéficiaires avec les mêmes noms, merci de préciser le numéro de compte et le RIB du bénéficiare avec lesquels vous souhaiter passer le virement!"
+                        return f"Entity_Missing_Transaction_Virement", message, extracted_entities
+            else:
+                message = "Le type de compte ou les noms du bénéficiaires sont incorrectes!"
+                return f"Entity_Missing_Transaction_Virement", message, extracted_entities

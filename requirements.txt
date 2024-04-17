@@ -1,5 +1,7 @@
 transformers
 scikit-learn
+joblib
+torch
 wrapt
 urllib3
 keras

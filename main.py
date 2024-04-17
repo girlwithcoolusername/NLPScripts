@@ -63,6 +63,8 @@ async def main_handle_request(request: Request):
             context, response = answer
         elif len(answer) == 3:
             context, response, extracted_entities = answer
+        else:
+            response = answer
         return {"response": response}
 
 

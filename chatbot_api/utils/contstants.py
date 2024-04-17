@@ -24,9 +24,23 @@ ROLE = "ADMIN"
 CANCEL_ACTION = {
     "D'accord votre demande a été annulée. Que puis-je faire d'autre pour vous aujourd'hui ?",
     "Entendu, l'action a été annulé. Si vous avez d'autres questions ou besoins, n'hésitez pas à demander."
-    "Compris, votre demande a été annulée. Si vous avez besoin de plus d'assistance ou si vous souhaitez effectuer une autre action, je suis là pour vous aider.",
+    "Compris, votre demande a été annulée. Si vous avez besoin de plus d'assistance ou si vous souhaitez effectuer "
+    "une autre action, je suis là pour vous aider.",
     "Aucun problème, j'annule l'action . N'hésitez pas à me dire si vous avez besoin d'aide pour autre chose.",
     "Bien reçu, l'action a été annulée. Si vous avez d'autres demandes, je suis à votre disposition."
+}
+ASSISTANCE_ACTION = {
+    "Besoin d'aide ? Contactez notre équipe dédiée au 05 22 58 88 55 ou par email à attijarinet@attijariwafa.com. Nous "
+    "sommes là pour vous du lundi au samedi, de 8h à 20h (9h à 15h pendant Ramadan).",
+    "Pour toute demande, notre équipe est là pour vous aider. Appelez-nous au 05 22 58 88 55 ou envoyez un email à "
+    "attijarinet@attijariwafa.com. Nos horaires sont du lundi au samedi, de 8h à 20h (9h à 15h pendant Ramadan).",
+    "Vous avez des questions ? Contactez-nous au 05 22 58 88 55 ou par email à attijarinet@attijariwafa.com. Nous "
+    "sommes"
+    "disponibles du lundi au samedi, de 8h à 20h (9h à 15h pendant Ramadan).",
+    "Besoin d'assistance ? Appelez-nous au 05 22 58 88 55 ou envoyez un email à attijarinet@attijariwafa.com. Nos "
+    "horaires sont du lundi au samedi, de 8h à 20h (9h à 15h pendant Ramadan).",
+    "Pour toute demande d'aide, contactez notre équipe au 05 22 58 88 55 ou par email à attijarinet@attijariwafa.com. "
+    "Nos horaires sont du lundi au samedi, de 8h à 20h (9h à 15h pendant Ramadan)."
 }
 # Security questions
 QUESTION_TO_FUNCTION = {
@@ -70,10 +84,10 @@ PATTERNS = {
     "categorieOperation": r"\b(?:retrait|dépôt|virement|paiement|prélèvement)",
     "motif": r"\b(?:achat|retrait|virement|paiement|salaire|loyer|facture|remboursement|dépense|alimentation|logement"
              r"|transport|divertissement|santé|épargne|impôts)",
-    "dateExpiration": r"(date d'expiration|expiration)",
-    "cvv": r"(code|Card Verification Value |cvv|CVV)",
-    "statusCarte": r"statut",
-    "codePin": r"(code pin|pin|code)",
+    "demande_dateExpiration": r"(date d'expiration|expiration)",
+    "demande_cvv": r"(code|Card Verification Value |cvv|CVV)",
+    "demande_statutCarte": r"statut",
+    "demande_codePin": r"(code pin|pin|code)",
     "rib": r"\b(\d{24}|\d{4}(?: \d{4}){5})\b",
     "typeBeneficiaire": r"\b(physique|morale)",
     "numeroFacture": r"\b(INV|FACT|BL|PO)[A-Za-z0-9-_]{4,19}\b",
@@ -84,10 +98,9 @@ PATTERNS = {
                 r"?:bancaires|mobiles))\b",
     "raisonsOpposition": r"(fraude|utilisation\snon\sautorisée|transaction\ssuspecte|hameçonnage|escroquerie|vol"
                          r"|perte)",
-    "typePlafond": r"(retraits|paiements|achats|dépenses|transferts|transactions|cashback|avance|crédit|débit)"
+    "typePlafond": r"(retraits|paiements|achats|dépenses|transferts|transactions|cashback|avance|crédit|débit)",
+    "typeOperation": r"(instantanné|permanent)",
 }
-
-VIEW_CARD_PATTERNS = extract_info(PATTERNS, ['dateExpiration', 'cvv', 'statusCarte', 'codePin'])
 
 INTENT_ACTIONS = {
     "Consultation_Solde": {
@@ -100,7 +113,9 @@ INTENT_ACTIONS = {
     },
     "Consultation_Cartes": {
         "action": "consultation_cartes_action",
-        "patterns": extract_info(PATTERNS, ['typeCarte', 'numeroCarte', 'statutCarte'])
+        "patterns": extract_info(PATTERNS,
+                                 ['typeCarte', 'numeroCarte', 'statutCarte', 'demande_dateExpiration', 'demande_cvv',
+                                  'demande_statutCarte', 'demande_codePin'])
     },
     "Gestion_Bénéficiaires_Ajout": {
         "action": "action_ajout_beneficiaire",
@@ -125,8 +140,9 @@ INTENT_ACTIONS = {
         "action": "info_geolocalisation_action"
     },
     "Transaction_Virement": {
-        "action": "action_ajout_transaction",
-        "patterns": extract_info(PATTERNS, ['typeCompte', 'numeroCompte', 'montant', 'motif'])
+        "action": "action_ajout_transaction_virement",
+        "complete_action": "action_complete_ajout_transaction_virement",
+        "patterns": extract_info(PATTERNS, ['typeCompte', 'rib', 'numeroCompte', 'montant', 'motif', 'typeOperation'])
     },
     "Transaction_PaiementFacture": {
         "action": "action_ajout_transaction_paiement",

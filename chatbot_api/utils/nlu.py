@@ -79,18 +79,3 @@ def entity_extraction(text, patterns):
 
     return entities_ner_bert, entities_ner_regex
 
-
-def verify_demand(text):
-    # Initialize a dictionary to store the values extracted with the regex patterns
-    entities_ner_regex = {}
-
-    # For each regex pattern provided in the patterns dictionary
-    for key, pattern in VIEW_CARD_PATTERNS.items():
-        # Compile the regex pattern
-        regex_pattern = re.compile(pattern, re.IGNORECASE)
-        # Search for the pattern in the text and extract the first match if any
-        entity_ner_regex = regex_pattern.findall(text)
-        # Store the extracted value in the entities_ner_regex dictionary with the corresponding key
-        entities_ner_regex[key] = "demandé" if entity_ner_regex else None
-
-    return entities_ner_regex
