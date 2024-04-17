@@ -1,0 +1,10 @@
+transformers
+scikit-learn
+wrapt
+urllib3
+keras
+langchain
+tiktoken
+faiss-cpu
+protobuf
+dateparser
