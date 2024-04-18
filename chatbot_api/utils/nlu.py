@@ -3,7 +3,6 @@ import torch
 import re
 from transformers import AutoTokenizer, AutoModelForTokenClassification, pipeline
 
-from chatbot_api.utils.contstants import VIEW_CARD_PATTERNS
 
 
 def intent_prediction(model, tokenizer, text, max_len=128, top_k=3):

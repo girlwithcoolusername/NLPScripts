@@ -21,15 +21,15 @@ USERNAME = "username"
 PASSWORD = "password"
 ROLE = "ADMIN"
 
-CANCEL_ACTION = {
+CANCEL_ACTION = [
     "D'accord votre demande a été annulée. Que puis-je faire d'autre pour vous aujourd'hui ?",
     "Entendu, l'action a été annulé. Si vous avez d'autres questions ou besoins, n'hésitez pas à demander."
     "Compris, votre demande a été annulée. Si vous avez besoin de plus d'assistance ou si vous souhaitez effectuer "
     "une autre action, je suis là pour vous aider.",
     "Aucun problème, j'annule l'action . N'hésitez pas à me dire si vous avez besoin d'aide pour autre chose.",
     "Bien reçu, l'action a été annulée. Si vous avez d'autres demandes, je suis à votre disposition."
-}
-ASSISTANCE_ACTION = {
+]
+ASSISTANCE_ACTION = [
     "Besoin d'aide ? Contactez notre équipe dédiée au 05 22 58 88 55 ou par email à attijarinet@attijariwafa.com. Nous "
     "sommes là pour vous du lundi au samedi, de 8h à 20h (9h à 15h pendant Ramadan).",
     "Pour toute demande, notre équipe est là pour vous aider. Appelez-nous au 05 22 58 88 55 ou envoyez un email à "
@@ -41,7 +41,7 @@ ASSISTANCE_ACTION = {
     "horaires sont du lundi au samedi, de 8h à 20h (9h à 15h pendant Ramadan).",
     "Pour toute demande d'aide, contactez notre équipe au 05 22 58 88 55 ou par email à attijarinet@attijariwafa.com. "
     "Nos horaires sont du lundi au samedi, de 8h à 20h (9h à 15h pendant Ramadan)."
-}
+]
 # Security questions
 QUESTION_TO_FUNCTION = {
     # "Pouvez-vous fournir votre clé de RIB ?": provide_account_number,
@@ -73,6 +73,21 @@ FALLBACK_RESPONSES = [
     "Je n'ai pas compris quelle opération vous souhaitez effectuer. Pouvez-vous s'il vous plaît me donner plus de "
     "détails ?"
 ]
+MATCHING_PATTERNS = {
+    "nom": "le nom du bénéficiaire",
+    "prenom": "le prénom du bénéficiaire",
+    "typeBeneficiaire": "Le type de bénéficiaire, par exemple 'Particulier' ou 'Entreprise'",
+    "newRib": "le nouveau RIB (Relevé d'Identité Bancaire) du bénéficiaire",
+    "typeCompte": "le type de compte, comme 'Courant', 'Épargne', etc",
+    "numeroFacture": "le numéro de facture associé à la transaction",
+    "typeCarte": "le type de carte bancaire, par exemple 'Ambition', 'MasterCard MOURIH', etc.",
+    "services": "les services associés à la carte , tels que 'Assurance voyage', 'Paiement en ligne' ",
+    "raisonsOpposition": "les raisons pour lesquelles vous souhaitez opposer votre carte bancaire",
+    "plafond": "le plafond autorisé",
+    "typePlafond": "le type de plafond, par exemple 'Retraits, Paiement en ligne,..",
+    "montant": "le montant de la transaction",
+    "typeOperation": "le type du virement : instantané ou permanent"
+}
 PATTERNS = {
     "typeCompte": r"\b(?:compte\s+)?(principal|courant|habituel|chèques|à\svue|personnel|individuel|dépôt|virtuel"
                   r"|épargne|d'entreprise|professionnel|placement)",

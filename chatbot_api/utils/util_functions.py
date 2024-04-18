@@ -11,14 +11,18 @@ def extract_info(data, keys):
     return result
 
 
+from datetime import datetime
+
+
 def extract_date_from_entities(entities):
-    extracted_dates = {}
+    extracted_timestamps = {}
     for entity in entities:
         parsed_date = parse_date(entity, languages=["fr"],
                                  settings={'TIMEZONE': 'Africa/Casablanca', 'RETURN_AS_TIMEZONE_AWARE': False})
         if parsed_date:
-            extracted_dates[entity] = parsed_date
-    return extracted_dates
+            timestamp = parsed_date.timestamp()
+            extracted_timestamps[entity] = timestamp
+    return extracted_timestamps
 
 
 def timestamp_to_datetime(timestamp):
@@ -39,7 +43,7 @@ def compare_dates(date1, date2):
 def filter_operations(operations, entities):
     filtered_operations = []
     for operation in operations:
-        if any(entity['entity_group'] == 'DATE' and compare_dates(extract_date_from_entities(entity['word']).values(),
+        if any(entity['entity_group'] == 'DATE' and compare_dates(extract_date_from_entities(entity['word'].values()),
                                                                   operation['dateOperation']) for entity in
                entities):
             filtered_operations.append(operation)
@@ -63,25 +67,27 @@ def get_cartes_message(request_list, cartes):
             elif 'codePin' in request:
                 message += f"son code PIN est {carte['codePin']}."
         return message
-
-    if len(cartes) == 1:
-        message = ""
-        carte = cartes[0]
-        if request_list:
-            message += build_message_for_request(request_list, carte)
-        else:
-            message = f"Votre carte {carte['typeCarte']} de numéro  {carte['numeroCarte']} expire le {carte['dateExpiration']}. Elle a pour code PIN {carte['codePin']} son code de sécurité (CVV) est {carte['cvv']}.La carte est actuellement {carte['statutCarte']} et possède pour services {carte['services']}"
-            if carte['statutCarte'] == "opposée":
-                message += f"Elle a été opposé le {carte['dateOpposition']} pour {carte['raisonOpposition']}."
-    else:
-        message = "Voici les informations de vos cartes bancaires :\n\n"
-        for carte in cartes:
+    if cartes:
+        if len(cartes) == 1:
+            message = ""
+            carte = cartes[0]
             if request_list:
                 message += build_message_for_request(request_list, carte)
             else:
-                message = f"Votre carte {carte['typeCarte']} de numéro {carte['numeroCarte']} expire le {carte['dateExpiration']}. Elle a pour code PIN {carte['codePin']} son code de sécurité (CVV) est {carte['cvv']}.La carte est actuellement {carte['statutCarte']} et possède pour services {carte['services']}"
+                message = f"Votre carte {carte['typeCarte']} de numéro  {carte['numeroCarte']} expire le {carte['dateExpiration']}. Elle a pour code PIN {carte['codePin']} son code de sécurité (CVV) est {carte['cvv']}.La carte est actuellement {carte['statutCarte']} et possède pour services {carte['services']}"
                 if carte['statutCarte'] == "opposée":
                     message += f"Elle a été opposé le {carte['dateOpposition']} pour {carte['raisonOpposition']}."
+        else:
+            message = "Voici les informations de vos cartes bancaires :\n\n"
+            for carte in cartes:
+                if request_list:
+                    message += build_message_for_request(request_list, carte)
+                else:
+                    message = f"Votre carte {carte['typeCarte']} de numéro {carte['numeroCarte']} expire le {carte['dateExpiration']}. Elle a pour code PIN {carte['codePin']} son code de sécurité (CVV) est {carte['cvv']}.La carte est actuellement {carte['statutCarte']} et possède pour services {carte['services']}"
+                    if carte['statutCarte'] == "opposée":
+                        message += f"Elle a été opposé le {carte['dateOpposition']} pour {carte['raisonOpposition']}."
+    else:
+        message = "Aucune carte ne correspond aux informations spécifiées!"
     return message
 
 
@@ -91,6 +97,7 @@ def get_operations_message(operations, filtered_operations):
         if operation['motif']:
             message += f" pour {operation['motif']}"
         return message
+
     message = "Voici les informations de vos opérations bancaires :\n\n"
     if filtered_operations:
         for operation in filtered_operations:
@@ -100,6 +107,7 @@ def get_operations_message(operations, filtered_operations):
         for operation in operations:
             message += build_message_info_operation(operation)
         return message
+
 
 def get_comptes_message(comptes):
     if comptes:
@@ -114,6 +122,7 @@ def get_comptes_message(comptes):
     else:
         return "Désolé, je n'ai trouvé aucun compte associé à votre compte."
 
+
 def get_agences_messages(agences):
     if agences:
         if len(agences) == 1:
@@ -126,3 +135,21 @@ def get_agences_messages(agences):
     else:
         message = "Aucune agence n'est trouvée."
     return message
+
+
+def get_missing_entity_message(missing_entities):
+    message = "Désolé, vous n'avez pas spécifié : " + ', '.join(missing_entities)
+    if len(missing_entities) == 1:
+        message += ". Veuillez les spécifier." if missing_entities[0][:3] == "les" else ". Veuillez le spécifier."
+    else:
+        message += ". Veuillez les spécifier."
+    return message
+
+
+def merge_entities(extracted_entities, new_extracted_entities):
+    return {**extracted_entities, **new_extracted_entities}
+
+
+
+
+
