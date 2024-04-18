@@ -2,6 +2,8 @@ import datetime
 
 from dateparser import parse as parse_date
 
+from chatbot_api.utils.nlu import entity_extraction
+
 
 def extract_info(data, keys):
     result = {}
@@ -67,6 +69,7 @@ def get_cartes_message(request_list, cartes):
             elif 'codePin' in request:
                 message += f"son code PIN est {carte['codePin']}."
         return message
+
     if cartes:
         if len(cartes) == 1:
             message = ""
@@ -148,8 +151,6 @@ def get_missing_entity_message(missing_entities):
 
 def merge_entities(extracted_entities, new_extracted_entities):
     return {**extracted_entities, **new_extracted_entities}
-
-
 
 
 
