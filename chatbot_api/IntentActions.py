@@ -40,12 +40,10 @@ class IntentActions:
         _, entities_ner_regex = entity_extraction(text, patterns)
         if entities_ner_regex:
             for patternName, value in entities_ner_regex.items():
-                if patternName == 'numeroCompte':
-                    entities_dict[patternName] = int(value)
-                else:
-                    entities_dict[patternName] = value
+                if value:
+                    entities_dict[patternName] = value[0]
             response_body = {"userId": userid, "entitiesDic": entities_dict}
-            comptes = self.spring_api.post_data('/comptes/searchEntitiesDict', response_body)
+            comptes = self.spring_api.post_data('comptes/searchEntitiesDict', response_body)
             return get_comptes_message(comptes)
         else:
             comptes = self.spring_api.get_data(f"comptes/user/{userid}")
@@ -59,15 +57,16 @@ class IntentActions:
         _, entities_ner_regex = entity_extraction(text, patterns)
         if entities_ner_regex:
             for patternName, value in entities_ner_regex.items():
-                if 'demande_' not in patternName:
-                    if patternName == "numeroCarte":
-                        entities_dict[patternName] = int(value)
-                    else:
-                        entities_dict[patternName] = value
-                else:
-                    request_list.append(patternName)
+                    if value:
+                        if 'demande_' not in patternName:
+                            if patternName == "numeroCarte":
+                                entities_dict[patternName] = int(value[0])
+                            else:
+                                entities_dict[patternName] = value[0]
+                        else:
+                            request_list.append(patternName)
             response_body = {"userId": userid, "entitiesDic": entities_dict}
-            cartes = self.spring_api.post_data('/cartes/searchEntitiesDict', response_body)
+            cartes = self.spring_api.post_data('cartes/searchEntitiesDict', response_body)
             return get_cartes_message(request_list, cartes)
         else:
             cartes = self.spring_api.get_data(f"cartes/user/{userid}")
@@ -83,12 +82,14 @@ class IntentActions:
             operations = self.spring_api.get_data(f"operations/user/{userid}")
         else:
             for patternName, value in entities_ner_regex.items():
-                entities_dict[patternName] = value
+                if value:
+                    entities_dict[patternName] = value[0]
             response_body = {"userId": userid, "entitiesDic": entities_dict}
-            operations = self.spring_api.post_data('/operations/searchEntitiesDict', response_body)
+            operations = self.spring_api.post_data('operations/searchEntitiesDict', response_body)
 
         if operations:
-            filtered_operations = filter_operations(operations, entities_ner_bert)
+            # filtered_operations = filter_operations(operations, entities_ner_bert)
+            filtered_operations = None
             return get_operations_message(operations, filtered_operations)
         else:
             return "Désolé, je n'ai trouvé aucune opération associée à votre compte."
@@ -462,7 +463,7 @@ class IntentActions:
                     },
                     "status": "enable" if status == "Activation" else "disable"
                 }
-                message = self.spring_api.post_data('/cartes/updateByCardType', response_body)
+                message = self.spring_api.post_data('cartes/updateByCardType', response_body)
                 return "user_request", message, {}
             elif required_entities and 'besoin_numeroCarte' in extracted_entities.keys():
                 response_body = {
@@ -475,7 +476,7 @@ class IntentActions:
                     "status": "enable" if status == "Activation" else "disable"
 
                 }
-                message = self.spring_api.post_data('/cartes/updateByCardNum', response_body)
+                message = self.spring_api.post_data('cartes/updateByCardNum', response_body)
                 return "user_request", message, {}
         elif context == "Annulation_Action":
             message = random.choice(CANCEL_ACTION)
@@ -597,7 +598,7 @@ class IntentActions:
                         "raisonsOpposition": extracted_entities.get('raisonsOpposition')
                     }
                 }
-                message = self.spring_api.post_data('/cartes/opposeByCardType', response_body)
+                message = self.spring_api.post_data('cartes/opposeByCardType', response_body)
                 return "user_request", message, {}
             else:
                 response_body = {
@@ -608,7 +609,7 @@ class IntentActions:
                         'numeroCarte': extracted_entities.get('numeroCarte')
                     }
                 }
-                message = self.spring_api.post_data('/cartes/opposeByCardNum', response_body)
+                message = self.spring_api.post_data('cartes/opposeByCardNum', response_body)
                 return "user_request", message, {}
         elif context == "Annulation_Action":
             message = random.choice(CANCEL_ACTION)
@@ -733,7 +734,7 @@ class IntentActions:
                     "statut": "add" if status == "Augmenter" else "disable",
                     "duration": ""
                 }
-                message = self.spring_api.post_data('/plafond/updateByCardType', response_body)
+                message = self.spring_api.post_data('plafond/updateByCardType', response_body)
                 return "user_request", message, {}
             else:
                 response_body = {
@@ -746,7 +747,7 @@ class IntentActions:
                     "duration": ""
 
                 }
-                message = self.spring_api.post_data('/plafond/updateByCardNum', response_body)
+                message = self.spring_api.post_data('plafond/updateByCardNum', response_body)
                 return "user_request", message, {}
         elif context == "Annulation_Action":
             message = random.choice(CANCEL_ACTION)
@@ -936,7 +937,7 @@ class IntentActions:
                         'typeOperation': extracted_entities('typeOperation')
                     }
                 }
-                message = self.spring_api.post_data('/operations/addByAccountTypeBeneficiaryNames', response_body)
+                message = self.spring_api.post_data('operations/addByAccountTypeBeneficiaryNames', response_body)
                 return "user_request", message, {}
             elif ['typeCompte', 'rib', 'montant', 'typeOperation'] in extracted_entities.keys():
                 response_body = {
@@ -953,7 +954,7 @@ class IntentActions:
                         'typeOperation': extracted_entities('typeOperation')
                     }
                 }
-                message = self.spring_api.post_data('/operations/addByAccountTypeAndRib', response_body)
+                message = self.spring_api.post_data('operations/addByAccountTypeAndRib', response_body)
                 return "user_request", message, {}
             elif ['numeroCompte', 'rib', 'montant', 'typeOperation'] in extracted_entities.keys():
                 response_body = {
@@ -970,7 +971,7 @@ class IntentActions:
                         'typeOperation': extracted_entities('typeOperation')
                     }
                 }
-                message = self.spring_api.post_data('/operations/addByAccountNumAndRib', response_body)
+                message = self.spring_api.post_data('operations/addByAccountNumAndRib', response_body)
                 return "user_request", message, {}
             elif ['numeroCompte', 'nom', 'prenom', 'montant', 'typeOperation'] in extracted_entities.keys():
                 response_body = {
@@ -988,7 +989,7 @@ class IntentActions:
                         'typeOperation': extracted_entities('typeOperation')
                     }
                 }
-                message = self.spring_api.post_data('/operations/addByAccountNumBeneficiaryNames', response_body)
+                message = self.spring_api.post_data('operations/addByAccountNumBeneficiaryNames', response_body)
                 return "user_request", message, {}
         elif context == "Annulation_Action":
             message = random.choice(CANCEL_ACTION)
@@ -1140,7 +1141,7 @@ class IntentActions:
                     'numeroFacture': extracted_entities.get('numeroFacture'),
                     "typeCompte": extracted_entities.get('typeCompte')
                 }
-                message = self.spring_api.post_data('/paimenent-facture/addInvoiceByAccountType', response_body)
+                message = self.spring_api.post_data('paimenent-facture/addInvoiceByAccountType', response_body)
                 return "user_request", message, {}
             else:
                 response_body = {
@@ -1149,7 +1150,7 @@ class IntentActions:
                     "numeroCompte": extracted_entities.get('numeroCompte'),
                     "typeCompte": extracted_entities.get('typeCompte')
                 }
-                message = self.spring_api.post_data('/paimenent-facture/addInvoiceByAccountNum', response_body)
+                message = self.spring_api.post_data('paimenent-facture/addInvoiceByAccountNum', response_body)
                 return "user_request", message, {}
         elif context == "Annulation_Action":
             message = random.choice(CANCEL_ACTION)
@@ -1210,13 +1211,13 @@ class IntentActions:
     def check_comptes(self, userid, extracted_entities):
         type_compte = extracted_entities.get('typeCompte')
 
-        comptes = self.spring_api.get_data(f'/comptes/userTypeCompte/{userid}/{type_compte}')
+        comptes = self.spring_api.get_data(f'comptes/userTypeCompte/{userid}/{type_compte}')
 
         return comptes
 
     def check_cartes(self, userid, extracted_entities):
         type_carte = extracted_entities.get('typeCarte')
 
-        cartes = self.spring_api.get_data(f'/cartes/userCardsByType/{userid}/{type_carte}')
+        cartes = self.spring_api.get_data(f'cartes/userCardsByType/{userid}/{type_carte}')
 
         return cartes

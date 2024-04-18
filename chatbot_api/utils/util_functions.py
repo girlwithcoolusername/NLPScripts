@@ -1,4 +1,5 @@
 import datetime
+from datetime import timedelta
 
 from dateparser import parse as parse_date
 
@@ -32,7 +33,7 @@ def timestamp_to_datetime(timestamp):
 
 
 def compare_dates(date1, date2):
-    delta = datetime.timedelta(days=20)
+    delta = timedelta(days=20)
     datetime1 = timestamp_to_datetime(date1)
     datetime2 = timestamp_to_datetime(date2)
 
@@ -45,7 +46,7 @@ def compare_dates(date1, date2):
 def filter_operations(operations, entities):
     filtered_operations = []
     for operation in operations:
-        if any(entity['entity_group'] == 'DATE' and compare_dates(extract_date_from_entities(entity['word'].values()),
+        if any(entity['entity_group'] == 'DATE' and compare_dates(extract_date_from_entities(entity['word']),
                                                                   operation['dateOperation']) for entity in
                entities):
             filtered_operations.append(operation)
@@ -56,20 +57,32 @@ def filter_operations(operations, entities):
     return filtered_operations
 
 
+
+
 def get_cartes_message(request_list, cartes):
     def build_message_for_request(request_list, carte):
-        message = f"Votre carte {carte['typeCarte']}"
+        message = ""
         for request in request_list:
-            if 'dateExpiration' in request:
-                message += f"expire le {carte['dateExpiration']}. "
-            elif 'cvv' in request:
-                message += f"Elle a pour code de sécurité {carte['cvv']}."
-            elif 'statutCarte' in request:
-                message += f" est actuellement {carte['statutCarte']}."
-            elif 'codePin' in request:
-                message += f"son code PIN est {carte['codePin']}."
-        return message
-
+            if request == 'dateExpiration' and 'dateExpiration' in carte:
+                datetime_obj = datetime.fromisoformat(carte['dateExpiration'][:19])
+                date_part = datetime_obj.date()
+                message += f"Votre carte {carte['typeCarte']} va expirer le {date_part}. "
+            elif request == 'cvv' and 'cvv' in carte:
+                if message:
+                    message += f"Elle a pour code de sécurité {carte['cvv']}. "
+                else:
+                    message += f"Votre carte {carte['typeCarte']} a pour code de sécurité {carte['cvv']}. "
+            elif request == 'statutCarte' and 'statutCarte' in carte:
+                if message:
+                    message += f"La carte est actuellement {carte['statutCarte']}. "
+                else:
+                    message += f"Votre carte {carte['typeCarte']} est actuellement {carte['statutCarte']}. "
+            elif request == 'codePin' and 'codePin' in carte:
+                if message:
+                    message += f"Elle a pour code de pin {carte['codePin']}. "
+                else:
+                    message += f"Votre carte {carte['typeCarte']} a pour code pin {carte['codePin']}. "
+        return message.strip()
     if cartes:
         if len(cartes) == 1:
             message = ""
@@ -101,7 +114,7 @@ def get_operations_message(operations, filtered_operations):
             message += f" pour {operation['motif']}"
         return message
 
-    message = "Voici les informations de vos opérations bancaires :\n\n"
+    message = "Voici les informations de vos opérations bancaires :"
     if filtered_operations:
         for operation in filtered_operations:
             message += build_message_info_operation(operation)

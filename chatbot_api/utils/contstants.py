@@ -89,10 +89,14 @@ MATCHING_PATTERNS = {
     "typeOperation": "le type du virement : instantané ou permanent"
 }
 PATTERNS = {
-    "typeCompte": r"\b(?:compte\s+)?(principal|courant|habituel|chèques|à\svue|personnel|individuel|dépôt|virtuel"
-                  r"|épargne|d'entreprise|professionnel|placement)",
-    "numeroCompte": r"\b0{3}[0-9]{3}[a-zA-Z][0-9]{9}\b",
-    "typeCarte": r"\b(?:mastercard|visa|visa electron)\s+(.*)$",
+    "typeCompte": r"\bcompte\s+(principal|courant|habituel|chèques|à\svue|personnel|individuel|dépôt|virtuel|épargne"
+                  r"|d'entreprise|professionnel|placement)",
+    "numeroCompte": r"\b[0]{3}[0-9]{3}[a-zA-Z][0-9]{8}\b",
+    "typeCarte": r"\b(MasterCard\s+(?:MOURIH|CLUB|WAJDA\s+GENERIQUE|WAJDA\s+BILA\s+HOUDOUD|LBANKALIK|FAYDA|WORLD\s"
+                 r"+ELITE|CARTE\s+18-25)|VISA\s+ELECTRON\s+(?:AISANCE|KAFYA|WEB\s+PAY)|VISA\s+("
+                 r"?:VISA\s+PREMIER|ESPACE|AMBITION|BILA\s+HOUDOUD|WORLD\s+ACCESS|RASMALI\s+CONFORT|RASMALI\s+AUTO\s"
+                 r"+ENTRPRENEUR|BUSINESS\s+LOCALE|GOLD\s+INTERNATIONAL|SAHLA|POU\s+L|CORPORATE|PLATINIUL\s"
+                 r"+INTERNATIONALE|ANA\s+MAAK\s+HIRAFI))",
     "numeroCarte": r"^\d{4}(?:\s?\d{4}){3}$",
     "statutCarte": r"\b(?:active|bloquée|expirée|annulée|en cours de fabrication|en attente de réception|opposée)",
     "montant": r"\b(\d+)\s*(?=(?:dirhams?|dh|MAD)\b)",
@@ -100,12 +104,12 @@ PATTERNS = {
     "motif": r"\b(?:achat|retrait|virement|paiement|salaire|loyer|facture|remboursement|dépense|alimentation|logement"
              r"|transport|divertissement|santé|épargne|impôts)",
     "demande_dateExpiration": r"(date d'expiration|expiration)",
-    "demande_cvv": r"(code|Card Verification Value |cvv|CVV)",
+    "demande_cvv": r"(Card Verification Value |cvv|CVV)",
     "demande_statutCarte": r"statut",
     "demande_codePin": r"(code pin|pin|code)",
     "rib": r"\b(\d{24}|\d{4}(?: \d{4}){5})\b",
     "typeBeneficiaire": r"\b(physique|morale)",
-    "numeroFacture": r"\b(INV|FACT|BL|PO)[A-Za-z0-9-_]{4,19}\b",
+    "numeroFacture": r"\b(?:INV|FACT|BL|PO)[A-Za-z0-9-_]{12,19}\b",
     "services": r"\b(?:paiements\s+(?:en\s+ligne|sans\s+contact|à\s+l'étranger)|retraits\s+d'espèces|tous\s+les\s"
                 r"+services|assurances\s+(?:voyage|assistance)|conciergerie|rachat\s+("
                 r"?:frais|franchise)|protections\s+(?:fraudeux|achats)|remise\s+(?:immédiate|différée)|privilèges\s+("
@@ -124,12 +128,12 @@ INTENT_ACTIONS = {
     },
     "Consultation_Opérations": {
         "action": "consultation_operations_action",
-        "patterns": extract_info(PATTERNS, ['typeCompte', 'numeroCompte', 'categorieOperation', 'montant', 'motif'])
+        "patterns": extract_info(PATTERNS, ['categorieOperation', 'montant', 'motif'])
     },
     "Consultation_Cartes": {
         "action": "consultation_cartes_action",
         "patterns": extract_info(PATTERNS,
-                                 ['typeCarte', 'numeroCarte', 'statutCarte', 'demande_dateExpiration', 'demande_cvv',
+                                 ['typeCarte', 'numeroCarte', 'demande_dateExpiration', 'demande_cvv',
                                   'demande_statutCarte', 'demande_codePin'])
     },
     "Gestion_Bénéficiaires_Ajout": {
