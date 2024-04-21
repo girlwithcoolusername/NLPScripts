@@ -76,7 +76,8 @@ FALLBACK_RESPONSES = [
 MATCHING_PATTERNS = {
     "nom": "le nom du bénéficiaire",
     "prenom": "le prénom du bénéficiaire",
-    "typeBeneficiaire": "Le type de bénéficiaire, par exemple 'Particulier' ou 'Entreprise'",
+    "typeBeneficiaire": "le type de bénéficiaire 'Physique' ou 'Moral'",
+    "rib": "le RIB (Relevé d'Identité Bancaire) du bénéficiaire",
     "newRib": "le nouveau RIB (Relevé d'Identité Bancaire) du bénéficiaire",
     "typeCompte": "le type de compte, comme 'Courant', 'Épargne', etc",
     "numeroFacture": "le numéro de facture associé à la transaction",
@@ -136,17 +137,19 @@ INTENT_ACTIONS = {
                                  ['typeCarte', 'numeroCarte', 'demande_dateExpiration', 'demande_cvv',
                                   'demande_statutCarte', 'demande_codePin'])
     },
-    "Gestion_Bénéficiaires_Ajout": {
+    "Gestion_Bénéficiare_Ajout": {
         "action": "action_ajout_beneficiaire",
         "complete_action": "action_complete_ajout_beneficiaire",
         "patterns": extract_info(PATTERNS, ['rib', "typeBeneficiaire"])
     },
-    "Gestion_Bénéficiaires_Suppression": {
+    "Gestion_Bénéficiare_Suppression": {
         "action": "action_suppression_beneficiaire",
+        "complete_action": "action_complete_suppression_beneficiaire",
         "patterns": extract_info(PATTERNS, ['rib'])
     },
-    "Gestion_Bénéficiaires_Modification": {
+    "Gestion_Bénéficiare_Modification": {
         "action": "action_modification_beneficiaire",
+        "complete_action": "action_complete_modification_beneficiaire",
         "patterns": extract_info(PATTERNS, ['rib'])
     },
     "Info_Assistance": {

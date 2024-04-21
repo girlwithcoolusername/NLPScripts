@@ -1,7 +1,10 @@
 import uvicorn
 from fastapi import FastAPI, Request
+
+from chatbot_api.IntentActions import IntentActions
 from chatbot_api.utils.contstants import INTENT_ACTIONS, MODEL, TOKENIZER, LABEL_ENCODER
-from chatbot_api.utils.bot import handle_first_request, handle_security_question, handle_request
+from chatbot_api.utils.bot import handle_first_request, handle_security_question, handle_request, \
+    handle_request_validation, handle_missing_entity
 from chatbot_api.utils.nlu import intent_recognition
 
 app = FastAPI()
@@ -23,7 +26,7 @@ async def main_handle_request(request: Request):
         context = "first_request"
         response, security_question = handle_first_request()
         context = "user_request"
-        return {"response": response+security_question}
+        return {"response": response + security_question}
 
     # If context is "security_question", handle the security question
     elif context == "security_question":
@@ -36,27 +39,16 @@ async def main_handle_request(request: Request):
 
     # If an entity is missing in the user's answer
     elif "Entity_Missing" in context:
-        intent = context.split("Entity_Missing_")[1]
-        if intent in INTENT_ACTIONS:
-            return INTENT_ACTIONS[intent]['complete_action'](data, extracted_entities, INTENT_ACTIONS[intent]["patterns"],"Missing_Entity")
+        context, response, extracted_entities = handle_missing_entity(data,context,extracted_entities)
+        return {"response" : response}
 
     elif "Request_Validation" in context:
-        previous_intent = context.split("Request_Validation_")[1]
-        text = data['text'].lower()
-        intent = intent_recognition(text, MODEL, TOKENIZER, LABEL_ENCODER)
-        if intent == "Confirmation_Action":
-            if previous_intent in INTENT_ACTIONS:
-                return INTENT_ACTIONS[previous_intent]['complete_action'](data, extracted_entities,
-                                                                          INTENT_ACTIONS[previous_intent]["patterns"],
-                                                                          intent)
-        elif intent == "Annulation_Action":
-            if previous_intent in INTENT_ACTIONS:
-                return INTENT_ACTIONS[previous_intent]['complete_action'](data, extracted_entities,
-                                                                          INTENT_ACTIONS[previous_intent]["patterns"],
-                                                                          intent)
+        context, response, extracted_entities = handle_request_validation(data, context, MODEL, TOKENIZER,
+                                                                          LABEL_ENCODER, extracted_entities)
+        return {"response": response}
+
     # Otherwise, handle the user's request based on the current context
     elif context == "user_request" or context in INTENT_ACTIONS:
-        response = None
         answer = handle_request(data, MODEL, TOKENIZER, LABEL_ENCODER)
         if len(answer) == 2:
             context, response = answer
@@ -68,4 +60,4 @@ async def main_handle_request(request: Request):
 
 
 if __name__ == "__main__":
-    uvicorn.run(app, host='localhost', port=8000)
+    uvicorn.run(app, host='0.0.0.0', port=8000)

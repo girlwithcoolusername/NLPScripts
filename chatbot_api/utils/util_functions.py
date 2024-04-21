@@ -1,9 +1,8 @@
 import datetime
-from datetime import timedelta
+from datetime import datetime, timedelta
 
+import pytz
 from dateparser import parse as parse_date
-
-from chatbot_api.utils.nlu import entity_extraction
 
 
 def extract_info(data, keys):
@@ -14,30 +13,33 @@ def extract_info(data, keys):
     return result
 
 
-from datetime import datetime
+def convert_to_french_date(datetime_obj):
+    if isinstance(datetime_obj, datetime):
+        datetime_obj = datetime_obj.strftime("%Y-%m-%d")
+    date_parts = datetime_obj.split("T")
+    date_object = datetime.strptime(date_parts[0], "%Y-%m-%d")
+    french_date_string = date_object.strftime("%d/%m/%Y")
+    return french_date_string
 
 
-def extract_date_from_entities(entities):
-    extracted_timestamps = {}
-    for entity in entities:
-        parsed_date = parse_date(entity, languages=["fr"],
-                                 settings={'TIMEZONE': 'Africa/Casablanca', 'RETURN_AS_TIMEZONE_AWARE': False})
-        if parsed_date:
-            timestamp = parsed_date.timestamp()
-            extracted_timestamps[entity] = timestamp
-    return extracted_timestamps
+def extract_date_from_entity(entity):
+    # Parse the date string into a datetime object
+    date_object = parse_date(entity, languages=["fr"],
+                             settings={'TIMEZONE': 'Africa/Casablanca', 'RETURN_AS_TIMEZONE_AWARE': False})
+
+    if date_object:
+        # Format the datetime object into a French date string
+        french_date_string = date_object.strftime("%d/%m/%Y")
+        return french_date_string
+    else:
+        return None
 
 
-def timestamp_to_datetime(timestamp):
-    return datetime.datetime.fromtimestamp(timestamp / 1000.0)
-
-
-def compare_dates(date1, date2):
-    delta = timedelta(days=20)
-    datetime1 = timestamp_to_datetime(date1)
-    datetime2 = timestamp_to_datetime(date2)
-
-    if abs(datetime1 - datetime2) < delta:
+def compare_dates(operation_date, date):
+    date_object = datetime.strptime(date, '%d/%m/%Y').date()
+    operation_date_object = datetime.fromisoformat(operation_date).date()
+    # Convert to an aware datetime object
+    if abs(operation_date_object - date_object) <= timedelta(days=20):
         return True
     else:
         return False
@@ -46,43 +48,43 @@ def compare_dates(date1, date2):
 def filter_operations(operations, entities):
     filtered_operations = []
     for operation in operations:
-        if any(entity['entity_group'] == 'DATE' and compare_dates(extract_date_from_entities(entity['word']),
-                                                                  operation['dateOperation']) for entity in
-               entities):
-            filtered_operations.append(operation)
-        elif any(entity['entity_group'] == 'PER' and (
-                entity['word'] in (operation['beneficiaire']['nom'], operation['beneficiaire']['pernom'])) for
-                 entity in entities):
-            filtered_operations.append(operation)
+        for entity in entities:
+            if entity['entity_group'] == 'DATE':
+                date_string = extract_date_from_entity(entity['word'])
+                if date_string and compare_dates(operation['dateOperation'], date_string):
+                    filtered_operations.append(operation)
+                    break
+            elif entity['entity_group'] == 'PER' and (
+                    entity['word'] in (operation['beneficiaire']['nom'], operation['beneficiaire']['pernom'])):
+                filtered_operations.append(operation)
+                break
     return filtered_operations
-
-
 
 
 def get_cartes_message(request_list, cartes):
     def build_message_for_request(request_list, carte):
         message = ""
         for request in request_list:
-            if request == 'dateExpiration' and 'dateExpiration' in carte:
-                datetime_obj = datetime.fromisoformat(carte['dateExpiration'][:19])
-                date_part = datetime_obj.date()
-                message += f"Votre carte {carte['typeCarte']} va expirer le {date_part}. "
-            elif request == 'cvv' and 'cvv' in carte:
+            if 'dateExpiration' in request and 'dateExpiration' in carte:
+                french_date_string = convert_to_french_date(carte['dateExpiration'])
+                message += f"Votre carte {carte['typeCarte']} va expirer le {french_date_string}. "
+            elif 'cvv' in request and 'cvv' in carte:
                 if message:
                     message += f"Elle a pour code de sécurité {carte['cvv']}. "
                 else:
                     message += f"Votre carte {carte['typeCarte']} a pour code de sécurité {carte['cvv']}. "
-            elif request == 'statutCarte' and 'statutCarte' in carte:
+            elif 'statutCarte' in request and 'statutCarte' in carte:
                 if message:
                     message += f"La carte est actuellement {carte['statutCarte']}. "
                 else:
                     message += f"Votre carte {carte['typeCarte']} est actuellement {carte['statutCarte']}. "
-            elif request == 'codePin' and 'codePin' in carte:
+            elif 'codePin' in request and 'codePin' in carte:
                 if message:
                     message += f"Elle a pour code de pin {carte['codePin']}. "
                 else:
                     message += f"Votre carte {carte['typeCarte']} a pour code pin {carte['codePin']}. "
         return message.strip()
+
     if cartes:
         if len(cartes) == 1:
             message = ""
@@ -90,7 +92,8 @@ def get_cartes_message(request_list, cartes):
             if request_list:
                 message += build_message_for_request(request_list, carte)
             else:
-                message = f"Votre carte {carte['typeCarte']} de numéro  {carte['numeroCarte']} expire le {carte['dateExpiration']}. Elle a pour code PIN {carte['codePin']} son code de sécurité (CVV) est {carte['cvv']}.La carte est actuellement {carte['statutCarte']} et possède pour services {carte['services']}"
+                french_date_string = convert_to_french_date(carte['dateExpiration'])
+                message = f"Votre carte {carte['typeCarte']} expire le {french_date_string}. Elle a pour code PIN {carte['codePin']} son code de sécurité (CVV) est {carte['cvv']}.La carte est actuellement {carte['statutCarte']} et possède pour services {carte['services']}"
                 if carte['statutCarte'] == "opposée":
                     message += f"Elle a été opposé le {carte['dateOpposition']} pour {carte['raisonOpposition']}."
         else:
@@ -99,7 +102,8 @@ def get_cartes_message(request_list, cartes):
                 if request_list:
                     message += build_message_for_request(request_list, carte)
                 else:
-                    message = f"Votre carte {carte['typeCarte']} de numéro {carte['numeroCarte']} expire le {carte['dateExpiration']}. Elle a pour code PIN {carte['codePin']} son code de sécurité (CVV) est {carte['cvv']}.La carte est actuellement {carte['statutCarte']} et possède pour services {carte['services']}"
+                    french_date_string = convert_to_french_date(carte['dateExpiration'])
+                    message = f"Votre carte {carte['typeCarte']}  expire le {french_date_string}. Elle a pour code PIN {carte['codePin']} son code de sécurité (CVV) est {carte['cvv']}.La carte est actuellement {carte['statutCarte']} et possède pour services {carte['services']}"
                     if carte['statutCarte'] == "opposée":
                         message += f"Elle a été opposé le {carte['dateOpposition']} pour {carte['raisonOpposition']}."
     else:
@@ -109,7 +113,8 @@ def get_cartes_message(request_list, cartes):
 
 def get_operations_message(operations, filtered_operations):
     def build_message_info_operation(operation):
-        message = f"Vous avez effectué un : {operation['categorieOperation']} avec votre compte {operation['compte']['typeCompte']} le {operation['dateOperation']} avec le montant {operation['montant']} au compte de {operation['beneficiaire']['nom']} {operation['beneficiaire']['prenom']}"
+        french_date_string = convert_to_french_date(operation['dateOperation'])
+        message = f"Vous avez effectué un : {operation['categorieOperation']} avec votre compte {operation['compte']['typeCompte']} le {french_date_string} avec le montant {operation['montant']} au compte de {operation['beneficiaire']['nom']} {operation['beneficiaire']['prenom']}"
         if operation['motif']:
             message += f" pour {operation['motif']}"
         return message
@@ -164,6 +169,3 @@ def get_missing_entity_message(missing_entities):
 
 def merge_entities(extracted_entities, new_extracted_entities):
     return {**extracted_entities, **new_extracted_entities}
-
-
-

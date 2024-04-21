@@ -58,3 +58,30 @@ def handle_request(data, model, tokenizer, label_encoder):
                 response = action_function()
 
         return intent, response
+
+
+def handle_missing_entity(data, context, extracted_entities):
+    intent = context.split("Entity_Missing_")[1]
+    if intent in INTENT_ACTIONS:
+        intent_actions = IntentActions(spring_api_service)
+        patterns = INTENT_ACTIONS[intent].get("patterns", None)
+        action_function_name = INTENT_ACTIONS[intent]['complete_action']
+        action_function = getattr(intent_actions, action_function_name)
+        return action_function(data, extracted_entities, patterns, "Missing_Entity")
+    else:
+        return "user_request", random.choice(FALLBACK_RESPONSES) , {}
+
+
+def handle_request_validation(data, context, model, tokenizer, label_encoder, extracted_entities):
+    previous_intent = context.split("Request_Validation_")[1]
+    text = data['text'].lower()
+    intent = intent_recognition(text, model, tokenizer, label_encoder)
+    if intent == "Confirmation_Action" or intent == "Annulation_Action":
+        if previous_intent in INTENT_ACTIONS:
+            intent_actions = IntentActions(spring_api_service)
+            action_function_name = INTENT_ACTIONS[previous_intent]['complete_action']
+            patterns = INTENT_ACTIONS[previous_intent].get("patterns", None)
+            action_function = getattr(intent_actions, action_function_name)
+            return action_function(data, extracted_entities, patterns, intent)
+    else:
+        return "user_request", random.choice(FALLBACK_RESPONSES) , {}
