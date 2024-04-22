@@ -26,6 +26,7 @@ async def main_handle_request(request: Request):
         context = "first_request"
         response, security_question = handle_first_request()
         context = "user_request"
+        print(context)
         return {"response": response + security_question}
 
     # If context is "security_question", handle the security question
@@ -35,16 +36,19 @@ async def main_handle_request(request: Request):
             context = new_context
         else:
             context = None
+        print(context)
         return {"response": response}
 
     # If an entity is missing in the user's answer
     elif "Entity_Missing" in context:
         context, response, extracted_entities = handle_missing_entity(data,context,extracted_entities)
+        print(context,extracted_entities)
         return {"response" : response}
 
     elif "Request_Validation" in context:
         context, response, extracted_entities = handle_request_validation(data, context, MODEL, TOKENIZER,
                                                                           LABEL_ENCODER, extracted_entities)
+        print(context,extracted_entities)
         return {"response": response}
 
     # Otherwise, handle the user's request based on the current context
@@ -56,6 +60,7 @@ async def main_handle_request(request: Request):
             context, response, extracted_entities = answer
         else:
             response = answer
+        print(context,extracted_entities)
         return {"response": response}
 
 

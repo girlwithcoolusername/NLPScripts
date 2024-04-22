@@ -55,6 +55,7 @@ class SpringAPIService:
             else:
                 return response.text
         else:
+            print(response.status_code)
             return None
 
     def post_data_check(self, endpoint, data):
@@ -82,7 +83,7 @@ class SpringAPIService:
         url = f"{self.base_url}/{endpoint}"
         headers = {"Authorization": f"Bearer {self.token}", "Content-Type": "application/json"}
         response = requests.delete(url, json=data, headers=headers)
-        if response.status_code in [200, 400, 404]:
+        if response.status_code in [200,204, 400, 404]:
             return response.text
         else:
             return None

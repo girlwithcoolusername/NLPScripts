@@ -57,14 +57,14 @@ class IntentActions:
         _, entities_ner_regex = entity_extraction(text, patterns)
         if entities_ner_regex:
             for patternName, value in entities_ner_regex.items():
-                    if value:
-                        if 'demande_' not in patternName:
-                            if patternName == "numeroCarte":
-                                entities_dict[patternName] = int(value[0])
-                            else:
-                                entities_dict[patternName] = value[0]
+                if value:
+                    if 'demande_' not in patternName:
+                        if patternName == "numeroCarte":
+                            entities_dict[patternName] = int(value[0])
                         else:
-                            request_list.append(patternName)
+                            entities_dict[patternName] = value[0]
+                    else:
+                        request_list.append(patternName)
             response_body = {"userId": userid, "entitiesDic": entities_dict}
             cartes = self.spring_api.post_data('cartes/searchEntitiesDict', response_body)
             return get_cartes_message(request_list, cartes)
@@ -110,14 +110,22 @@ class IntentActions:
                     prenom = entity['word'].split(" ")[0].capitalize()
                     nom = entity['word'].split(" ")[1].capitalize()
         if entities_ner_regex:
+            if entities_ner_regex.get('typeBeneficiaire'):
+                typeBeneficiaire = entities_ner_regex.get('typeBeneficiaire')[0]
             if entities_ner_regex.get('rib'):
                 if len(entities_ner_regex.get('rib')) == 2:
-                    rib = entities_ner_regex.get('rib')[0].upper()
-                    newRib = entities_ner_regex.get('newRib')[1].upper()
+                    if self.which_rib(userid, entities_ner_regex):
+                        rib = entities_ner_regex.get('rib')[0].upper()
+                        newRib = entities_ner_regex.get('rib')[1].upper()
+                    else:
+                        rib = entities_ner_regex.get('rib')[1].upper()
+                        newRib = entities_ner_regex.get('rib')[0].upper()
                 else:
-                    rib = entities_ner_regex.get('rib')[0].upper()
-                    if entities_ner_regex.get('typeBeneficiaire'):
-                        typeBeneficiaire = entities_ner_regex.get('typeBeneficiaire')[0]
+                    if self.which_rib(userid, entities_ner_regex):
+                        rib = entities_ner_regex.get('rib')[0].upper()
+                    else:
+                        newRib = entities_ner_regex.get('rib')[0].upper()
+
         for entity in required_entities:
             if locals().get(entity) is None:
                 missing_entities.append(entity)
@@ -156,12 +164,12 @@ class IntentActions:
                 beneficiaries = self.check_beneficiaires(userid, extracted_entities)
                 if beneficiaries:
                     if len(beneficiaries) == 1:
-                        message = f"Vous voulez modifier le bénéficiaire {nom} {prenom} avec le RIB {newRib}. Merci de confirmer cette demande!"
+                        message = f"Vous voulez modifier le bénéficiaire {nom} {prenom} avec le nouveau RIB {newRib}. Merci de confirmer cette demande!"
                         return "Request_Validation_Gestion_Bénéficiare_Modification", message, extracted_entities
                     else:
                         extracted_entities['besoin_ribBeneficiaire'] = None
                         if rib:
-                            message = f"Vous voulez modifier le bénéficiaire {nom} {prenom} avec le RIB {newRib}. Merci de confirmer cette demande!"
+                            message = f"Vous voulez modifier le bénéficiaire {nom} {prenom} avec le nouveau RIB {newRib}. Merci de confirmer cette demande!"
                             return "Request_Validation_Gestion_Bénéficiare_Modification", message, extracted_entities
                         else:
                             message = f"Vous avez plusieurs bénéficiaires avec le même nom, merci préciser le RIB du bénéficiaire!"
@@ -192,15 +200,30 @@ class IntentActions:
                     nom = entity['word'].split(" ")[1].capitalize()
 
         if entities_ner_regex:
+            if entities_ner_regex.get('typeBeneficiaire'):
+                typeBeneficiaire = entities_ner_regex.get('typeBeneficiaire')[0]
             if entities_ner_regex.get('rib'):
                 if len(entities_ner_regex.get('rib')) == 2:
-                    rib = entities_ner_regex.get('rib')[0].upper()
-                    newRib = entities_ner_regex.get('newRib')[1].upper()
+                    if self.which_rib(userid, entities_ner_regex):
+                        rib = entities_ner_regex.get('rib')[0].upper()
+                        newRib = entities_ner_regex.get('rib')[1].upper()
+                    else:
+                        rib = entities_ner_regex.get('rib')[1].upper()
+                        newRib = entities_ner_regex.get('rib')[0].upper()
                 else:
-                    rib = entities_ner_regex.get('rib')[0].upper()
-                    if entities_ner_regex.get('typeBeneficiaire'):
-                        typeBeneficiaire = entities_ner_regex.get('typeBeneficiaire')[0]
-
+                    if action_type == "modification" and context == "Missing_Entity":
+                        if 'besoin_ribBeneficiaire' in extracted_entities.keys():
+                            if 'rib' in extracted_entities.keys():
+                                newRib = entities_ner_regex.get('rib')[0].upper()
+                            else:
+                                if self.which_rib(userid, entities_ner_regex):
+                                    rib = entities_ner_regex.get('rib')[0].upper()
+                                else:
+                                    newRib = entities_ner_regex.get('rib')[0].upper()
+                        else:
+                            newRib = entities_ner_regex.get('rib')[0].upper()
+                    else:
+                        rib = entities_ner_regex.get('rib')[0].upper()
         for entity in required_entities:
             if locals().get(entity) is not None:
                 new_extracted_entities[entity] = locals().get(entity)
@@ -210,7 +233,7 @@ class IntentActions:
                 response_body = {
                     "userId": userid,
                     "beneficiaire": {
-                        "nom" : extracted_entities.get('nom'),
+                        "nom": extracted_entities.get('nom'),
                         "prenom": extracted_entities.get("prenom"),
                         "rib": extracted_entities.get("rib"),
                         "typeBeneficiaire": extracted_entities.get('typeBeneficiaire')
@@ -234,7 +257,7 @@ class IntentActions:
                     message = f"Vous voulez ajouter un bénéficiaire avec le nom {merged_entities.get('nom')}, le prénom {merged_entities.get('prenom')} comme {merged_entities.get('typeBeneficiaire')} ayant pour rib {merged_entities.get('rib')}. Merci de confirmer cette demande!"
                     return f"Request_Validation_Gestion_Bénéficiare_{action_type.capitalize()}", message, merged_entities
         elif action_type == "suppression":
-            if rib : new_extracted_entities['rib'] = rib
+            if rib: new_extracted_entities['rib'] = rib
             merged_entities = merge_entities(extracted_entities, new_extracted_entities)
             if context == "Confirmation_Action":
                 if 'besoin_ribBeneficiaire' not in extracted_entities.keys():
@@ -302,8 +325,6 @@ class IntentActions:
                         message = f"Vous voulez supprimer le bénéficiaire {merged_entities.get('nom')} {merged_entities.get('prenom')}. Merci de confirmer cette demande!"
                         return f"Request_Validation_Gestion_Bénéficiare_{action_type.capitalize()}", message, merged_entities
         elif action_type == "modification":
-            if rib: new_extracted_entities['rib'] = rib
-            merged_entities = merge_entities(extracted_entities, new_extracted_entities)
             if context == "Confirmation_Action":
                 if 'besoin_ribBeneficiaire' not in extracted_entities:
                     response_body = {
@@ -328,6 +349,8 @@ class IntentActions:
                 message = random.choice(CANCEL_ACTION)
                 return "user_request", message, {}
             elif context == "Missing_Entity":
+                if rib: new_extracted_entities['rib'] = rib
+                merged_entities = merge_entities(extracted_entities, new_extracted_entities)
                 if 'besoin_ribBeneficiaire' in extracted_entities:
                     if 'rib' in merged_entities.keys():
                         message = "Veuillez préciser le RIB du bénéficiaire à modifier"
@@ -336,10 +359,11 @@ class IntentActions:
                         if all(entity in merged_entities.keys() for entity in required_entities):
                             response_body = {
                                 "userId": userid,
-                                'oldRib': rib,
-                                'newRib': merged_entities.get('newRib')
+                                'beneficiaire': {
+                                    "rib": merged_entities.get('rib')
+                                }
                             }
-                            beneficiaire = self.spring_api.post_data('beneficiaires/user/rib', response_body)
+                            beneficiaire = self.spring_api.post_data_check('beneficiaires/user/rib', response_body)
                             if beneficiaire:
                                 message = f"Souhaitez-vous modifier le bénéficiaire avec le RIB {rib} ? Merci de confirmer cette demande!"
                                 return f"Request_Validation_Gestion_Bénéficiare_{action_type.capitalize()}", message, merged_entities
@@ -386,7 +410,7 @@ class IntentActions:
     def action_complete_suppression_beneficiaire(self, data, extracted_entities, patterns, context):
         required_entities = ['nom', 'prenom']
         return self.action_complete_process_beneficiaires(data, extracted_entities, patterns, context,
-                                                          required_entities, "modification")
+                                                          required_entities, "suppression")
 
     def action_modification_beneficiaire(self, data, patterns):
         required_entities = ['nom', 'prenom', 'newRib']
@@ -404,13 +428,16 @@ class IntentActions:
         required_entities = ['typeCarte', 'services']
         extracted_entities = {}
         missing_entities = []
-        typeCarte = None
-        services = None
-        numeroCarte = None
+        typeCarte,services,numeroCarte,numero_carte_str = None,None,None,None
+
         if entities_ner_regex:
-            typeCarte = entities_ner_regex.get('typeCarte')
-            services = entities_ner_regex.get('services')
-            numeroCarte = int(entities_ner_regex.get('numeroCarte'))
+            if entities_ner_regex.get('typeCarte'):
+                typeCarte = entities_ner_regex.get('typeCarte')[0]
+            if entities_ner_regex.get('services'):
+                services = entities_ner_regex.get('services')
+            if entities_ner_regex.get('numeroCarte'):
+                numero_carte_str = entities_ner_regex.get('numeroCarte')[0]
+                numeroCarte = int(numero_carte_str)
 
         for entity in required_entities:
             if locals().get(entity) is None:
@@ -427,19 +454,19 @@ class IntentActions:
                 if len(cartes) == 1:
                     if status == "Activation":
                         message = (
-                            f"Vous voulez ajouter les services {services} pour votre carte {typeCarte}. Merci de "
+                            f"Vous voulez ajouter les services {', '.join(services)} pour votre carte {typeCarte}. Merci de "
                             f"confirmer cette demande!")
                         return f"Request_Validation_Gestion_Cartes_{status}", message, extracted_entities
                     elif status == "Désactivation":
                         message = (
-                            f"Vous voulez supprimer les services {services} pour votre carte {typeCarte}. Merci de "
+                            f"Vous voulez supprimer les services {', '.join(services)} pour votre carte {typeCarte}. Merci de "
                             f"confirmer cette demande!")
                     return f"Request_Validation_Gestion_Cartes_{status}", message, extracted_entities
                 else:
                     extracted_entities['besoin_numeroCarte'] = None
                     if numeroCarte:
                         message = (
-                            f"Vous voulez ajouter les services {services} pour votre carte numéro {numeroCarte}. Merci de "
+                            f"Vous voulez ajouter les services {', '.join(services)} pour votre carte numéro {numeroCarte}. Merci de "
                             f"confirmer cette demande!")
                         return f"Request_Validation_Gestion_Cartes_{status}", message, extracted_entities
                     else:
@@ -459,14 +486,16 @@ class IntentActions:
         _, entities_ner_regex = entity_extraction(text, patterns)
         new_extracted_entities = {}
         missing_entities = []
-        typeCarte = None
-        services = None
-        numeroCarte = None
+        typeCarte,services,numeroCarte,numero_carte_str = None,None,None,None
 
         if entities_ner_regex:
-            typeCarte = entities_ner_regex.get('typeCarte')
-            numeroCarte = int(entities_ner_regex.get('numeroCarte'))
-            services = entities_ner_regex.get('services')
+            if entities_ner_regex.get('typeCarte'):
+                typeCarte = entities_ner_regex.get('typeCarte')[0]
+            if entities_ner_regex.get('services'):
+                services = entities_ner_regex.get('services')
+            if entities_ner_regex.get('numeroCarte'):
+                numero_carte_str = entities_ner_regex.get('numeroCarte')[0]
+                numeroCarte = int(numero_carte_str)
 
         for entity in required_entities:
             if locals().get(entity) is not None:
@@ -474,29 +503,28 @@ class IntentActions:
         if numeroCarte: new_extracted_entities['numeroCarte'] = numeroCarte
         merged_entities = merge_entities(extracted_entities, new_extracted_entities)
         if context == "Confirmation_Action":
-            if required_entities in extracted_entities.keys():
+            if all(entity in extracted_entities.keys() for entity in required_entities):
                 response_body = {
                     "userId": userid,
                     "carte": {
                         'typeCarte': extracted_entities.get('typeCarte'),
-                        "services": extracted_entities.get('services')
                     },
+                    "services": extracted_entities.get('services'),
                     "status": "enable" if status == "Activation" else "disable"
                 }
-                message = self.spring_api.post_data_text('cartes/updateByCardType', response_body)
+                message = self.spring_api.put_data('cartes/updateByCardType', response_body)
                 return "user_request", message, {}
-            elif required_entities and 'besoin_numeroCarte' in extracted_entities.keys():
+            elif all(entity in extracted_entities.keys() for entity in required_entities) and 'besoin_numeroCarte' in extracted_entities:
                 response_body = {
                     "userId": userid,
                     "carte": {
                         'typeCarte': extracted_entities.get('typeCarte'),
-                        "services": extracted_entities.get('services'),
                         'numeroCarte': extracted_entities.get('numeroCarte')
                     },
+                    "services": extracted_entities.get('services'),
                     "status": "enable" if status == "Activation" else "disable"
-
                 }
-                message = self.spring_api.post_data_text('cartes/updateByCardNum', response_body)
+                message = self.spring_api.put_data('cartes/updateByCardNum', response_body)
                 return "user_request", message, {}
         elif context == "Annulation_Action":
             message = random.choice(CANCEL_ACTION)
@@ -556,22 +584,27 @@ class IntentActions:
         userid = data['userId']
         _, entities_ner_regex = entity_extraction(text, patterns)
         required_entities = ['typeCarte', 'raisonsOpposition']
+        numero_carte_str, numeroCarte, typeCarte, raisonsOpposition = None, None, None, None
         extracted_entities = {}
         missing_entities = []
-        typeCarte = None
-        raisonsOpposition = None
-        numeroCarte = None
         if entities_ner_regex:
-            typeCarte = entities_ner_regex.get('typeCarte')
-            raisonsOpposition = entities_ner_regex.get('raisonsOpposition')
-            numeroCarte = int(entities_ner_regex.get('numeroCarte'))
+            if entities_ner_regex.get('typeCarte'):
+                typeCarte = entities_ner_regex.get('typeCarte')[0]
+            if entities_ner_regex.get('raisonsOpposition'):
+                raisonsOpposition = entities_ner_regex.get('raisonsOpposition')[0]
+            if entities_ner_regex.get('numeroCarte'):
+                numero_carte_str = entities_ner_regex.get('numeroCarte')[0]
+                if numero_carte_str:
+                    numeroCarte = int(numero_carte_str)
+        # Check for each required entity
         for entity in required_entities:
-            if locals().get(entity) is None:
+            if locals()[entity] is None:
                 missing_entities.append(entity)
             else:
-                extracted_entities[entity] = locals().get(entity)
+                extracted_entities[entity] = locals()[entity]
+        # Remove duplicate entries in missing_entities, if any
         missing_entities = list(set(missing_entities))
-        if numeroCarte : extracted_entities['numeroCarte'] = numeroCarte
+        if numeroCarte: extracted_entities['numeroCarte'] = numeroCarte
         if missing_entities:
             return self.handle_missing_entity(missing_entities, extracted_entities, "Gestion_Cartes_Opposition")
         else:
@@ -586,7 +619,7 @@ class IntentActions:
                     extracted_entities['besoin_numeroCarte'] = None
                     if numeroCarte:
                         message = (
-                            f"Vous voulez opposer votre carte numéro {numeroCarte} pour {raisonsOpposition}. Merci de "
+                            f"Vous voulez opposer votre carte {typeCarte} numéro {numeroCarte} pour {raisonsOpposition}. Merci de "
                             f"confirmer cette demande!")
                         return f"Request_Validation_Gestion_Cartes_Opposition", message, extracted_entities
                     else:
@@ -606,19 +639,20 @@ class IntentActions:
         _, entities_ner_regex = entity_extraction(text, patterns)
         new_extracted_entities = {}
         missing_entities = []
-        typeCarte = None
-        raisonsOpposition = None
-        numeroCarte = None
+        typeCarte, raisonsOpposition, numeroCarte, card_number_str = None, None, None, None
 
         if entities_ner_regex:
-            typeCarte = entities_ner_regex.get('typeCarte')
-            numeroCarte = int(entities_ner_regex.get('numeroCarte'))
-            raisonsOpposition = entities_ner_regex.get('raisonsOpposition')
-
+            if entities_ner_regex.get('typeCarte'):
+                typeCarte = entities_ner_regex.get('typeCarte')[0]
+            elif entities_ner_regex.get('raisonsOpposition'):
+                raisonsOpposition = entities_ner_regex.get('raisonsOpposition')[0]
+            elif entities_ner_regex.get('numeroCarte'):
+                card_number_str = entities_ner_regex.get('numeroCarte')[0]
+                if card_number_str:
+                    numeroCarte = int(card_number_str)
         for entity in required_entities:
             if locals().get(entity) is not None:
                 new_extracted_entities[entity] = locals().get(entity)
-        missing_entities = list(set(missing_entities))
         if numeroCarte: new_extracted_entities['numeroCarte'] = numeroCarte
         merged_entities = merge_entities(extracted_entities, new_extracted_entities)
         if context == "Confirmation_Action":
@@ -630,7 +664,7 @@ class IntentActions:
                         "raisonsOpposition": extracted_entities.get('raisonsOpposition')
                     }
                 }
-                message = self.spring_api.post_data_text('cartes/opposeByCardType', response_body)
+                message = self.spring_api.put_data('cartes/opposeByCardType', response_body)
                 return "user_request", message, {}
             else:
                 response_body = {
@@ -641,7 +675,7 @@ class IntentActions:
                         'numeroCarte': extracted_entities.get('numeroCarte')
                     }
                 }
-                message = self.spring_api.post_data_text('cartes/opposeByCardNum', response_body)
+                message = self.spring_api.put_data('cartes/opposeByCardNum', response_body)
                 return "user_request", message, {}
         elif context == "Annulation_Action":
             message = random.choice(CANCEL_ACTION)
@@ -671,158 +705,6 @@ class IntentActions:
                         if missing_entities:
                             message = get_missing_entity_message(missing_entities_explication)
                             return f"Entity_Missing_Gestion_Cartes_Opposition", message, merged_entities
-            
-            for entity in required_entities:
-                if entity not in merged_entities:
-                    missing_entities.append(entity)
-            missing_entities = list(set(missing_entities))
-            missing_entities_explication = [MATCHING_PATTERNS[key] for key in missing_entities if
-                                            key in MATCHING_PATTERNS]
-            if missing_entities:
-                message = get_missing_entity_message(missing_entities_explication)
-                return f"Entity_Missing_Gestion_Cartes_Opposition", message, merged_entities
-            else:
-                message = f"Souhaitez-vous opposer votre carte {merged_entities.get('typeCarte')} pour {merged_entities.get('raisonsOpposition')}? Merci de confirmer cette demande!"
-                return f"Request_Validation_Gestion_Cartes_Opposition", message, merged_entities
-
-    def action_plafond_carte(self, data, patterns, status):
-        text = data['text'].lower()
-        userid = data['userId']
-        _, entities_ner_regex = entity_extraction(text, patterns)
-        required_entities = ['typeCarte', 'plafond', 'typePlafond']
-        extracted_entities = {}
-        missing_entities = []
-        typeCarte = None
-        typePlafond = None
-        plafond = None
-        numeroCarte = None
-        if entities_ner_regex:
-            typeCarte = entities_ner_regex.get('typeCarte')
-            typePlafond = entities_ner_regex.get('typePlafond')
-            plafond = decimal.Decimal(entities_ner_regex.get('montant'))
-            numeroCarte = int(entities_ner_regex.get('numeroCarte'))
-
-        for entity in required_entities:
-            if locals().get(entity) is None:
-                missing_entities.append(entity)
-            else:
-                extracted_entities[entity] = locals().get(entity)
-        missing_entities = list(set(missing_entities))
-        if numeroCarte: extracted_entities['numeroCarte'] = numeroCarte
-        if missing_entities:
-            return self.handle_missing_entity(missing_entities, extracted_entities, f"Gestion_Cartes_Plafond_{status}")
-        else:
-            cartes = self.check_cartes(userid, extracted_entities)
-            if cartes:
-                if len(cartes) == 1:
-                    if status == "Augmenter":
-                        message = (
-                            f"Vous voulez augmenter le plafon de {typePlafond} pour votre carte {typeCarte}. Merci de "
-                            f"confirmer cette demande!")
-                    elif status == "Diminuer":
-                        message = (
-                            f"Vous voulez diminuer le plafon de {typePlafond} pour votre carte {typeCarte}. Merci de "
-                            f"confirmer cette demande!")
-                    return f"Request_Validation_Gestion_Cartes_Plafond_{status}", message, extracted_entities
-                else:
-                    extracted_entities['besoin_numeroCarte'] = None
-                    if numeroCarte:
-                        if status == "Augmenter":
-                            message = (
-                                f"Vous voulez augmenter le plafon de {typePlafond} pour votre carte numéro {numeroCarte}. Merci de "
-                                f"confirmer cette demande!")
-                        elif status == "Diminuer":
-                            message = (
-                                f"Vous voulez diminuer le plafon de {typePlafond} pour votre carte numéro {numeroCarte}. Merci de "
-                                f"confirmer cette demande!")
-                        return f"Request_Validation_Gestion_Cartes_Plafond_{status}", message, extracted_entities
-                    else:
-                        message = (
-                            f"Vous avez plusieurs cartes du même type, merci de préciser le numéro de votre carte "
-                            f"bancaire!")
-                        return f"Entity_Missing_Gestion_Cartes_Plafond_{status}", message, extracted_entities
-            else:
-                message = "Aucune carte ne correspond à ces données"
-                extracted_entities.pop('typeCarte')
-                return f"Entity_Missing_Gestion_Cartes_Plafond_{status}", message, extracted_entities
-
-    def action_complete_plafond(self, data, extracted_entities, patterns, context, status):
-        text = data['text'].lower()
-        userid = data['userId']
-        required_entities = ['typeCarte', 'typePlafond']
-        _, entities_ner_regex = entity_extraction(text, patterns)
-        new_extracted_entities = {}
-        missing_entities = []
-        typeCarte = None
-        typePlafond = None
-        numeroCarte = None
-        plafond = None
-
-        if entities_ner_regex:
-            typeCarte = entities_ner_regex.get('typeCarte')
-            numeroCarte = int(entities_ner_regex.get('numeroCarte'))
-            typePlafond = entities_ner_regex.get('typePlafond')
-            plafond = decimal.Decimal(entities_ner_regex.get('montant'))
-
-        for entity in required_entities:
-            if locals().get(entity) is not None:
-                new_extracted_entities[entity] = locals().get(entity)
-        missing_entities = list(set(missing_entities))
-        if numeroCarte: new_extracted_entities['numeroCarte'] = numeroCarte
-        merged_entities = merge_entities(extracted_entities, new_extracted_entities)
-        if context == "Confirmation_Action":
-            if 'besoin_numeroCarte' not in extracted_entities.keys():
-                response_body = {
-                    "userId": userid,
-                    'typeCarte': extracted_entities.get('typeCarte'),
-                    "typePlafond": extracted_entities.get('typePlafond'),
-                    "plafond": extracted_entities.get('montant'),
-                    "statut": "add" if status == "Augmenter" else "disable",
-                    "duration": ""
-                }
-                message = self.spring_api.post_data_text('plafond/updateByCardType', response_body)
-                return "user_request", message, {}
-            else:
-                response_body = {
-                    "userId": userid,
-                    'typeCarte': extracted_entities.get('typeCarte'),
-                    'numeroCarte': extracted_entities.get('numeroCarte'),
-                    "typePlafond": extracted_entities.get('typePlafond'),
-                    "plafond": extracted_entities.get('montant'),
-                    "statut": "add" if status == "Augmenter" else "disable",
-                    "duration": ""
-
-                }
-                message = self.spring_api.post_data_text('plafond/updateByCardNum', response_body)
-                return "user_request", message, {}
-        elif context == "Annulation_Action":
-            message = random.choice(CANCEL_ACTION)
-            return "user_request", message, {}
-        elif context == "Missing_Entity":
-            if 'besoin_numeroCarte' in extracted_entities.keys():
-                if 'numeroCarte' not in merged_entities.keys():
-                    message = "Veuillez préciser votre numéro de carte!"
-                    return f"Entity_Missing_Gestion_Cartes_Plafond_{status}", message, merged_entities
-                else:
-                    if all(entity in merged_entities.keys() for entity in required_entities):
-                        message = self.spring_api.get_data(f'/userCardsByNum/{numeroCarte}')
-                        if message:
-                            message = f"Souhaitez-vous modifier le plafond {merged_entities.get('typePlafond')} permis par votre carte {merged_entities.get('typeCarte')} numéro {numeroCarte} ? Merci de confirmer cette demande!"
-                            return f"Request_Validation_Gestion_Cartes_Plafond_{status}", message, merged_entities
-                        else:
-                            message = f"Aucune carte ne correspond à ce numéro!"
-                            merged_entities.pop('numeroCarte')
-                            return f"Entity_Missing_Gestion_Cartes_Plafond_{status}", message, merged_entities
-                    else:
-                        for entity in required_entities:
-                            if entity not in merged_entities:
-                                missing_entities.append(entity)
-                        missing_entities = list(set(missing_entities))
-                        missing_entities_explication = [MATCHING_PATTERNS[key] for key in missing_entities if
-                                                        key in MATCHING_PATTERNS]
-                        if missing_entities:
-                            message = get_missing_entity_message(missing_entities_explication)
-                            return f"Entity_Missing_Gestion_Cartes_Plafond_{status}", message, merged_entities
             else:
                 for entity in required_entities:
                     if entity not in merged_entities:
@@ -832,16 +714,180 @@ class IntentActions:
                                                 key in MATCHING_PATTERNS]
                 if missing_entities:
                     message = get_missing_entity_message(missing_entities_explication)
-                    return f"Entity_Missing_Gestion_Cartes_Plafond_{status}", message, merged_entities
+                    return "Entity_Missing_Gestion_Cartes_Opposition", message, merged_entities
                 else:
-                    message = f"Souhaitez-vous modifier le plafond {merged_entities.get('typePlafond')} permis par votre carte {merged_entities.get('typeCarte')} ? Merci de confirmer cette demande!"
-                    return f"Request_Validation_Gestion_Cartes_Plafond_{status}", message, merged_entities
+                    message = f"Souhaitez-vous opposer votre carte {merged_entities.get('typeCarte')} pour {merged_entities.get('raisonsOpposition')}? Merci de confirmer cette demande!"
+                    return "Request_Validation_Gestion_Cartes_Opposition", message, merged_entities
+
+    def action_plafond_carte(self, data, patterns, status):
+        text = data['text'].lower()
+        userid = data['userId']
+        _, entities_ner_regex = entity_extraction(text, patterns)
+        required_entities = ['typeCarte', 'plafond', 'typePlafond']
+        extracted_entities = {}
+        missing_entities = []
+        typeCarte, typePlafond, plafond, numeroCarte, card_number_str = None, None, None, None, None
+        if entities_ner_regex:
+            if entities_ner_regex.get('typeCarte'):
+                typeCarte = entities_ner_regex.get('typeCarte')[0]
+            if entities_ner_regex.get('typePlafond'):
+                typePlafond = entities_ner_regex.get('typePlafond')[0]
+            if entities_ner_regex.get('montant'):
+                montant_str = entities_ner_regex.get('montant')[0]
+                plafond = int(montant_str)
+            if entities_ner_regex.get('numeroCarte'):
+                card_number_str = entities_ner_regex.get('numeroCarte')[0]
+                numeroCarte = int(card_number_str)
+
+        for entity in required_entities:
+            if locals().get(entity) is None:
+                missing_entities.append(entity)
+            else:
+                extracted_entities[entity] = locals().get(entity)
+        missing_entities = list(set(missing_entities))
+        if numeroCarte: extracted_entities['numeroCarte'] = numeroCarte
+        if missing_entities:
+            return self.handle_missing_entity(missing_entities, extracted_entities, f"Gestion_Cartes_{status}_Plafond")
+        else:
+            cartes = self.check_cartes(userid, extracted_entities)
+            if cartes:
+                if len(cartes) == 1:
+                    if status == "Augmenter":
+                        message = (
+                            f"Vous voulez augmenter le plafond de {typePlafond} pour votre carte {typeCarte}. Merci de "
+                            f"confirmer cette demande!")
+                    elif status == "Diminuer":
+                        message = (
+                            f"Vous voulez diminuer le plafond de {typePlafond} pour votre carte {typeCarte}. Merci de "
+                            f"confirmer cette demande!")
+                    return f"Request_Validation_Gestion_Cartes_{status}_Plafond", message, extracted_entities
+                else:
+                    extracted_entities['besoin_numeroCarte'] = None
+                    if numeroCarte:
+                        if status == "Augmenter":
+                            message = (
+                                f"Vous voulez augmenter le plafond de {typePlafond} pour votre carte numéro {numeroCarte}. Merci de "
+                                f"confirmer cette demande!")
+                        elif status == "Diminuer":
+                            message = (
+                                f"Vous voulez diminuer le plafond de {typePlafond} pour votre carte numéro {numeroCarte}. Merci de "
+                                f"confirmer cette demande!")
+                        return f"Request_Validation_Gestion_Cartes_{status}_Plafond", message, extracted_entities
+                    else:
+                        message = (
+                            f"Vous avez plusieurs cartes du même type, merci de préciser le numéro de votre carte "
+                            f"bancaire!")
+                        return f"Entity_Missing_Gestion_Cartes_{status}_Plafond", message, extracted_entities
+            else:
+                message = "Aucune carte ne correspond à ces données"
+                extracted_entities.pop('typeCarte')
+                return f"Entity_Missing_Gestion_Cartes_{status}_Plafond", message, extracted_entities
+
+    def action_complete_plafond(self, data, extracted_entities, patterns, context, status):
+        text = data['text'].lower()
+        userid = data['userId']
+        required_entities = ['typeCarte', 'typePlafond', 'plafond']
+        _, entities_ner_regex = entity_extraction(text, patterns)
+        new_extracted_entities = {}
+        missing_entities = []
+        typeCarte, typePlafond, plafond, numeroCarte, card_number_str = None, None, None, None, None
+        if entities_ner_regex:
+            if entities_ner_regex.get('typeCarte'):
+                typeCarte = entities_ner_regex.get('typeCarte')[0]
+            if entities_ner_regex.get('typePlafond'):
+                typePlafond = entities_ner_regex.get('typePlafond')[0]
+            if entities_ner_regex.get('montant'):
+                montant_str = entities_ner_regex.get('montant')[0]
+                plafond = int(montant_str)
+            if entities_ner_regex.get('numeroCarte'):
+                card_number_str = entities_ner_regex.get('numeroCarte')[0]
+                numeroCarte = int(card_number_str)
+
+        for entity in required_entities:
+            if locals().get(entity) is not None:
+                new_extracted_entities[entity] = locals().get(entity)
+        if numeroCarte: new_extracted_entities['numeroCarte'] = numeroCarte
+        merged_entities = merge_entities(extracted_entities, new_extracted_entities)
+        if context == "Confirmation_Action":
+            if 'besoin_numeroCarte' not in extracted_entities.keys():
+                response_body = {
+                    "userId": userid,
+                    "carte": {
+                        "typeCarte": extracted_entities.get('typeCarte')
+                    },
+                    "plafond": {
+                        "typePlafond": extracted_entities.get('typePlafond'),
+                        "montantPlafond": extracted_entities.get('plafond'),
+                    },
+                    "statut": "add" if status == "Augmenter" else "disable",
+                    "duration": ""
+                }
+                message = self.spring_api.put_data('plafond/updateByCardType', response_body)
+                return "user_request", message, {}
+            else:
+                response_body = {
+                    "userId": userid,
+                    "carte": {
+                        "typeCarte": extracted_entities.get('typeCarte'),
+                        'numeroCarte': extracted_entities.get('numeroCarte'),
+
+                    },
+                    "plafond": {
+                        "typePlafond": extracted_entities.get('typePlafond'),
+                        "montantPlafond": extracted_entities.get('plafond'),
+                    },
+                    "statut": "add" if status == "Augmenter" else "disable",
+                    "duration": ""
+                }
+                message = self.spring_api.put_data('plafond/updateByCardNum', response_body)
+                return "user_request", message, {}
+        elif context == "Annulation_Action":
+            message = random.choice(CANCEL_ACTION)
+            return "user_request", message, {}
+        elif context == "Missing_Entity":
+            if 'besoin_numeroCarte' in extracted_entities.keys():
+                if 'numeroCarte' not in merged_entities.keys():
+                    message = "Veuillez préciser votre numéro de carte!"
+                    return f"Entity_Missing_Gestion_Cartes_{status}_Plafond", message, merged_entities
+                else:
+                    if all(entity in merged_entities.keys() for entity in required_entities):
+                        message = self.spring_api.get_data(f'/userCardsByNum/{numeroCarte}')
+                        if message:
+                            message = f"Souhaitez-vous {status.lower()} le plafond {merged_entities.get('typePlafond')} permis par votre carte {merged_entities.get('typeCarte')} numéro {numeroCarte} ? Merci de confirmer cette demande!"
+                            return f"Request_Validation_Gestion_Cartes_{status}_Plafond", message, merged_entities
+                        else:
+                            message = f"Aucune carte ne correspond à ce numéro!"
+                            merged_entities.pop('numeroCarte')
+                            return f"Entity_Missing_Gestion_Cartes_{status}_Plafond", message, merged_entities
+                    else:
+                        for entity in required_entities:
+                            if entity not in merged_entities:
+                                missing_entities.append(entity)
+                        missing_entities = list(set(missing_entities))
+                        missing_entities_explication = [MATCHING_PATTERNS[key] for key in missing_entities if
+                                                        key in MATCHING_PATTERNS]
+                        if missing_entities:
+                            message = get_missing_entity_message(missing_entities_explication)
+                            return f"Entity_Missing_Gestion_Cartes_{status}_Plafond", message, merged_entities
+            else:
+                for entity in required_entities:
+                    if entity not in merged_entities:
+                        missing_entities.append(entity)
+                missing_entities = list(set(missing_entities))
+                missing_entities_explication = [MATCHING_PATTERNS[key] for key in missing_entities if
+                                                key in MATCHING_PATTERNS]
+                if missing_entities:
+                    message = get_missing_entity_message(missing_entities_explication)
+                    return f"Entity_Missing_Gestion_Cartes_{status}_Plafond", message, merged_entities
+                else:
+                    message = f"Souhaitez-vous {status.lower()} le plafond {merged_entities.get('typePlafond')} permis par votre carte {merged_entities.get('typeCarte')} ? Merci de confirmer cette demande!"
+                    return f"Request_Validation_Gestion_Cartes_{status}_Plafond", message, merged_entities
 
     def action_plafond_augmenter(self, data, patterns, status):
-        return self.action_services_cartes(data, patterns, "Augmenter")
+        return self.action_plafond_carte(data, patterns, "Augmenter")
 
     def action_plafond_diminuer(self, data, patterns):
-        return self.action_services_cartes(data, patterns, "Diminuer")
+        return self.action_plafond_carte(data, patterns, "Diminuer")
 
     def action_complete_plafond_augmenter(self, data, extracted_entities, patterns, context):
         return self.action_complete_plafond(data, extracted_entities, patterns, context, "Augmenter")
@@ -857,22 +903,21 @@ class IntentActions:
         optional_entities = ['rib', 'numeroCompte', 'motif']
         extracted_entities = {}
         missing_entities = []
-        nom = None
-        prenom = None
-        typeCompte = None
-        numeroCompte = None
-        ribBeneficiaire = None
-        typeOperation = None
-        montant = None
-        motif = None
+        nom,prenom,typeCompte,numeroCompte,ribBeneficiaire,typeOperation,montant,motif = None,None,None,None,None,None,None,None
 
         if entities_ner_regex:
-            typeCompte = entities_ner_regex.get('typeCompte')
-            ribBeneficiaire = entities_ner_regex.get('rib')
-            numeroCompte = entities_ner_regex.get('numeroCompte').upper()
-            typeOperation = entities_ner_regex.get('typeOperation')
-            montant = decimal.Decimal(entities_ner_regex.get('montant'))
-            motif = entities_ner_regex.get('motif')
+            if entities_ner_regex.get('typeCompte'):
+                typeCompte = entities_ner_regex.get('typeCompte')[0]
+            if entities_ner_regex.get('rib'):
+                ribBeneficiaire = entities_ner_regex.get('rib')[0]
+            if entities_ner_regex.get('numeroCompte'):
+                numeroCompte = entities_ner_regex.get('numeroCompte')[0].upper()
+            if entities_ner_regex.get('typeOperation'):
+                typeOperation = entities_ner_regex.get('typeOperation')[0]
+            if entities_ner_regex.get('montant'):
+                montant = int(entities_ner_regex.get('montant')[0])
+            if entities_ner_regex.get('motif'):
+                motif = entities_ner_regex.get('motif')[0]
 
         if entities_ner_bert:
             for entity in entities_ner_bert:
@@ -881,17 +926,16 @@ class IntentActions:
                     nom = entity['word'].split(" ")[1].capitalize()
 
         for entity in required_entities:
-            if locals().get(entity) is not None:
+            if locals().get(entity):
                 extracted_entities[entity] = locals().get(entity)
+            else:
+                missing_entities.append(entity)
         for entity in optional_entities:
             if locals().get(entity):
                 extracted_entities[entity] = locals().get(entity)
-        for entity in required_entities:
-            if locals().get(entity) is None:
-                missing_entities.append(entity)
         missing_entities = list(set(missing_entities))
         if missing_entities:
-            return self.handle_missing_entity(required_entities, extracted_entities, 'Transaction_Virement')
+            return self.handle_missing_entity(missing_entities, extracted_entities, 'Transaction_Virement')
         else:
             comptes = self.check_comptes(userid, extracted_entities)
             beneficiaries = self.check_beneficiaires(userid, extracted_entities)
@@ -950,21 +994,24 @@ class IntentActions:
         userid = data['userId']
         entities_ner_bert, entities_ner_regex = entity_extraction(text, patterns)
         required_entities = ['typeCompte', 'nom', 'prenom', 'montant', 'typeOperation']
+        optional_entities = ['rib', 'numeroCompte', 'motif']
         new_extracted_entities = {}
         missing_entities = []
-        typeCompte = None
-        numeroCompte = None
-        ribBeneficiaire = None
-        typeOperation = None
-        montant = None
-        motif = None
+        nom,prenom,typeCompte,numeroCompte,ribBeneficiaire,typeOperation,montant,motif = None, None, None, None,None,None,None,None
+
         if entities_ner_regex:
-            typeCompte = entities_ner_regex.get('typeCompte')
-            numeroCompte = entities_ner_regex.get('numeroCompte').upper()
-            typeOperation = entities_ner_regex.get('typeOperation')
-            montant = decimal.Decimal(entities_ner_regex.get('montant'))
-            motif = entities_ner_regex.get('motif')
-            ribBeneficiaire = entities_ner_regex('rib').upper()
+            if entities_ner_regex.get('typeCompte'):
+                typeCompte = entities_ner_regex.get('typeCompte')[0]
+            if entities_ner_regex.get('rib'):
+                ribBeneficiaire = entities_ner_regex.get('rib')[0]
+            if entities_ner_regex.get('numeroCompte'):
+                numeroCompte = entities_ner_regex.get('numeroCompte')[0].upper()
+            if entities_ner_regex.get('typeOperation'):
+                typeOperation = entities_ner_regex.get('typeOperation')[0]
+            if entities_ner_regex.get('montant'):
+                montant = int(entities_ner_regex.get('montant')[0])
+            if entities_ner_regex.get('motif'):
+                motif = entities_ner_regex.get('motif')[0]
 
         if entities_ner_bert:
             for entity in entities_ner_bert:
@@ -973,18 +1020,21 @@ class IntentActions:
                     nom = entity['word'].split(" ")[1].capitalize()
 
         for entity in required_entities:
-            if locals().get(entity) is not None:
+            if locals().get(entity):
                 new_extracted_entities[entity] = locals().get(entity)
-        if motif: new_extracted_entities['motif'] = motif
-        if ribBeneficiaire: new_extracted_entities['rib'] = ribBeneficiaire
-        if numeroCompte: new_extracted_entities['numeroCompte'] = numeroCompte
+        for entity in optional_entities:
+            if locals().get(entity):
+                new_extracted_entities[entity] = locals().get(entity)
         merged_entities = merge_entities(extracted_entities, new_extracted_entities)
         if context == "Confirmation_Action":
-            if required_entities in extracted_entities.keys() and 'besoin_numeroCompte' not in extracted_entities.keys() and 'besoin_ribBeneficiaire' not in extracted_entities.keys():
+            required_entities_rib_account_type = ['typeCompte', 'rib', 'montant', 'typeOperation']
+            required_entities_rib_account_num = ['numeroCompte', 'rib', 'montant', 'typeOperation']
+            required_entities_names_account_num = ['numeroCompte', 'nom', 'prenom', 'montant', 'typeOperation']
+            if all(entity in extracted_entities.keys() for entity in required_entities) and 'besoin_numeroCompte' not in extracted_entities.keys() and 'besoin_ribBeneficiaire' not in extracted_entities.keys():
                 response_body = {
                     "userId": userid,
                     "compte": {
-                        'typeCompte': extracted_entities.get('typeCompte')
+                        "typeCompte": extracted_entities.get('typeCompte')
                     },
                     "beneficiaire": {
                         "nom": extracted_entities.get('nom'),
@@ -992,13 +1042,13 @@ class IntentActions:
                     },
                     "operation": {
                         "motif": extracted_entities.get('motif') if extracted_entities.get('motif') else "",
-                        'montant': extracted_entities.get('montant'),
-                        'typeOperation': extracted_entities('typeOperation')
+                        "montant": extracted_entities.get('montant'),
+                        "typeOperation": extracted_entities.get('typeOperation')
                     }
                 }
                 message = self.spring_api.post_data_text('operations/addByAccountTypeBeneficiaryNames', response_body)
                 return "user_request", message, {}
-            elif ['typeCompte', 'rib', 'montant', 'typeOperation'] in extracted_entities.keys():
+            elif all(entity in extracted_entities.keys() for entity in required_entities_rib_account_type):
                 response_body = {
                     "userId": userid,
                     "compte": {
@@ -1015,7 +1065,7 @@ class IntentActions:
                 }
                 message = self.spring_api.post_data_text('operations/addByAccountTypeAndRib', response_body)
                 return "user_request", message, {}
-            elif ['numeroCompte', 'rib', 'montant', 'typeOperation'] in extracted_entities.keys():
+            elif all(entity in extracted_entities.keys() for entity in required_entities_rib_account_num):
                 response_body = {
                     "userId": userid,
                     "compte": {
@@ -1032,7 +1082,7 @@ class IntentActions:
                 }
                 message = self.spring_api.post_data_text('operations/addByAccountNumAndRib', response_body)
                 return "user_request", message, {}
-            elif ['numeroCompte', 'nom', 'prenom', 'montant', 'typeOperation'] in extracted_entities.keys():
+            elif all(entity in extracted_entities.keys() for entity in required_entities_names_account_num):
                 response_body = {
                     "userId": userid,
                     "compte": {
@@ -1150,13 +1200,14 @@ class IntentActions:
         required_entities = ['typeCompte', 'numeroFacture']
         extracted_entities = {}
         missing_entities = []
-        typeCompte = None
-        numeroFacture = None
-        numeroCompte = None
+        typeCompte,numeroCompte,numeroFacture = None,None,None
         if entities_ner_regex:
-            typeCompte = entities_ner_regex.get('typeCompte')
-            numeroFacture = entities_ner_regex.get('numeroFacture').upper()
-            numeroCompte = entities_ner_regex.get('numeroCompte').upper()
+            if entities_ner_regex.get('typeCompte'):
+                typeCompte = entities_ner_regex.get('typeCompte')[0]
+            if entities_ner_regex.get('numeroFacture'):
+                numeroFacture = entities_ner_regex.get('numeroFacture')[0].upper()
+            if entities_ner_regex.get('numeroCompte'):
+                numeroCompte = entities_ner_regex.get('numeroCompte')[0].upper()
         for entity in required_entities:
             if locals().get(entity) is None:
                 missing_entities.append(entity)
@@ -1197,14 +1248,15 @@ class IntentActions:
         _, entities_ner_regex = entity_extraction(text, patterns)
         new_extracted_entities = {}
         missing_entities = []
-        typeCompte = None
-        numeroFacture = None
-        numeroCompte = None
+        typeCompte, numeroFacture, numeroCompte = None , None, None
 
         if entities_ner_regex:
-            typeCompte = entities_ner_regex.get('typeCompte')
-            numeroFacture = entities_ner_regex.get('numeroFacture').upper()
-            numeroCompte = entities_ner_regex.get('numeroCompte').upper()
+            if entities_ner_regex.get('typeCompte'):
+                typeCompte = entities_ner_regex.get('typeCompte')[0]
+            if entities_ner_regex.get('numeroFacture'):
+                numeroFacture = entities_ner_regex.get('numeroFacture')[0].upper()
+            if entities_ner_regex.get('numeroCompte'):
+                numeroCompte = entities_ner_regex.get('numeroCompte')[0].upper()
         for entity in required_entities:
             if locals().get(entity) is not None:
                 new_extracted_entities[entity] = locals().get(entity)
@@ -1303,3 +1355,13 @@ class IntentActions:
         cartes = self.spring_api.get_data(f'cartes/userCardsByType/{userid}/{type_carte}')
 
         return cartes
+
+    def which_rib(self, userid, entities_ner_regex):
+        rib = entities_ner_regex.get('rib')[0].upper()
+        response_body = {
+            "userId": userid,
+            "beneficiaire": rib
+        }
+        beneficiaire = self.spring_api.post_data_check('beneficiaires/user/rib', response_body)
+
+        return beneficiaire

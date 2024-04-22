@@ -111,7 +111,7 @@ PATTERNS = {
     "rib": r"\b(\d{24}|\d{4}(?: \d{4}){5})\b",
     "typeBeneficiaire": r"\b(physique|morale)",
     "numeroFacture": r"\b(?:INV|FACT|BL|PO)[A-Za-z0-9-_]{12,19}\b",
-    "services": r"\b(?:paiements\s+(?:en\s+ligne|sans\s+contact|à\s+l'étranger)|retraits\s+d'espèces|tous\s+les\s"
+    "services": r"\b(?:paiement\s+(?:en\s+ligne|sans\s+contact|à\s+l'étranger)|retrait\s+d'espèces|tous\s+les\s"
                 r"+services|assurances\s+(?:voyage|assistance)|conciergerie|rachat\s+("
                 r"?:frais|franchise)|protections\s+(?:fraudeux|achats)|remise\s+(?:immédiate|différée)|privilèges\s+("
                 r"?:exclusifs|voyage)|offres\s+(?:spéciales|partenaires)|accès\s+(?:aéroports|salons)|services\s+("
@@ -174,24 +174,24 @@ INTENT_ACTIONS = {
     "Gestion_Cartes_Activation": {
         "action": "action_activation_carte",
         "complete_action": "action_complete_activation_carte",
-        "patterns": extract_info(PATTERNS, ['typeCompte', 'numeroCompte', 'services'])
+        "patterns": extract_info(PATTERNS, ['typeCarte', 'numeroCarte', 'services'])
     },
     "Gestion_Cartes_Désactivation": {
         "action": "action_desactivation_carte",
         "complete_action": "action_complete_desactivation_carte",
-        "patterns": extract_info(PATTERNS, ['typeCompte', 'numeroCompte', 'services'])
+        "patterns": extract_info(PATTERNS, ['typeCarte', 'numeroCarte', 'services'])
     },
     "Gestion_Cartes_Opposition": {
         "action": "action_opposition_carte",
         "complete_action": "action_complete_opposition_carte",
-        "patterns": extract_info(PATTERNS, ['typeCompte', 'numeroCompte', 'raisonsOpposition'])
+        "patterns": extract_info(PATTERNS, ['typeCarte', 'numeroCarte', 'raisonsOpposition'])
     },
-    "Gestion_Cartes_Plafond_Augmenter": {
+    "Gestion_Cartes_Augmenter_Plafond": {
         "action": "action_plafond_augmenter",
         "complete_action": "action_complete_plafond_augmenter",
         "patterns": extract_info(PATTERNS, ['numeroCarte', 'typeCarte', 'montant', 'typePlafond'])
     },
-    "Gestion_Cartes_Plafond_Diminuer": {
+    "Gestion_Cartes_Diminuer_Plafond": {
         "action": "action_plafond_diminuer",
         "complete_action": "action_complete_plafond_diminuer",
         "patterns": extract_info(PATTERNS, ['numeroCarte', 'typeCarte', 'montant', 'typePlafond'])
