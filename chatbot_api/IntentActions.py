@@ -121,10 +121,13 @@ class IntentActions:
                         rib = entities_ner_regex.get('rib')[1].upper()
                         newRib = entities_ner_regex.get('rib')[0].upper()
                 else:
-                    if self.which_rib(userid, entities_ner_regex):
-                        rib = entities_ner_regex.get('rib')[0].upper()
+                    if action_type == "modification":
+                        if self.which_rib(userid, entities_ner_regex):
+                            rib = entities_ner_regex.get('rib')[0].upper()
+                        else:
+                            newRib = entities_ner_regex.get('rib')[0].upper()
                     else:
-                        newRib = entities_ner_regex.get('rib')[0].upper()
+                        rib = entities_ner_regex.get('rib')[0].upper()
 
         for entity in required_entities:
             if locals().get(entity) is None:
@@ -1110,7 +1113,7 @@ class IntentActions:
                     message = "Veuillez préciser votre numéro de compte!"
                     return "Entity_Missing_Transaction_Virement", message, merged_entities
                 else:
-                    if 'besoin_ribBeneficiare' in extracted_entities.keys():
+                    if 'besoin_ribBeneficiaire' in extracted_entities.keys():
                         if ribBeneficiaire is None:
                             message += "Veuillez préciser le RIB du bénéficiaire!"
                             return "Entity_Missing_Transaction_Virement", message, merged_entities
@@ -1142,7 +1145,7 @@ class IntentActions:
                             if missing_entities:
                                 message = get_missing_entity_message(missing_entities_explication)
                                 return "Entity_Missing_Transaction_Virement", message, merged_entities
-            if 'besoin_ribBeneficiare' in extracted_entities.keys():
+            elif 'besoin_ribBeneficiaire' in extracted_entities.keys():
                 if ribBeneficiaire is None:
                     message += "Veuillez préciser le RIB du bénéficiaire!"
                     return "Entity_Missing_Transaction_Virement", message, merged_entities

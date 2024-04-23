@@ -119,7 +119,7 @@ PATTERNS = {
     "raisonsOpposition": r"(fraude|utilisation\snon\sautorisée|transaction\ssuspecte|hameçonnage|escroquerie|vol"
                          r"|perte)",
     "typePlafond": r"(retraits|paiements|achats|dépenses|transferts|transactions|cashback|avance|crédit|débit)",
-    "typeOperation": r"(instantanné|permanent)",
+    "typeOperation": r"(instantané|permanent)",
 }
 
 INTENT_ACTIONS = {

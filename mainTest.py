@@ -60,7 +60,10 @@ async def main_handle_request(request: Request):
             context, response, extracted_entities = answer
         else:
             response = answer
-        print(context,extracted_entities)
+        if extracted_entities:
+            print(context,extracted_entities)
+        else:
+            print(context)
         return {"response": response}
 
 
