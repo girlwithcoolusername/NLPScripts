@@ -1,15 +1,10 @@
-import datetime
 from datetime import datetime, timedelta
 
 from dateparser import parse as parse_date
 
 
 def extract_info(data, keys):
-    result = {}
-    for key in keys:
-        if key in data:
-            result[key] = data[key]
-    return result
+    return {key: data[key] for key in keys if key in data}
 
 
 def convert_to_french_date(datetime_obj):
@@ -60,30 +55,39 @@ def filter_operations(operations, entities):
     return filtered_operations
 
 
-def get_cartes_message(request_list, cartes):
-    def build_message_for_request(request_list, carte):
-        message = ""
-        for request in request_list:
-            if 'dateExpiration' in request and 'dateExpiration' in carte:
-                french_date_string = convert_to_french_date(carte['dateExpiration'])
-                message += f"Votre carte {carte['typeCarte']} va expirer le {french_date_string}. "
-            elif 'cvv' in request and 'cvv' in carte:
-                if message:
-                    message += f"Elle a pour code de sécurité {carte['cvv']}. "
-                else:
-                    message += f"Votre carte {carte['typeCarte']} a pour code de sécurité {carte['cvv']}. "
-            elif 'statutCarte' in request and 'statutCarte' in carte:
-                if message:
-                    message += f"La carte est actuellement {carte['statutCarte']}. "
-                else:
-                    message += f"Votre carte {carte['typeCarte']} est actuellement {carte['statutCarte']}. "
-            elif 'codePin' in request and 'codePin' in carte:
-                if message:
-                    message += f"Elle a pour code de pin {carte['codePin']}. "
-                else:
-                    message += f"Votre carte {carte['typeCarte']} a pour code pin {carte['codePin']}. "
-        return message.strip()
+def build_message_for_request(request_list, carte):
+    message = ""
+    for request in request_list:
+        if 'dateExpiration' in request and 'dateExpiration' in carte:
+            french_date_string = convert_to_french_date(carte['dateExpiration'])
+            message += f"Votre carte {carte['typeCarte']} va expirer le {french_date_string}. "
+        elif 'cvv' in request and 'cvv' in carte:
+            if message:
+                message += f"Elle a pour code de sécurité {carte['cvv']}. "
+            else:
+                message += f"Votre carte {carte['typeCarte']} a pour code de sécurité {carte['cvv']}. "
+        elif 'statutCarte' in request and 'statutCarte' in carte:
+            if message:
+                message += f"La carte est actuellement {carte['statutCarte']}. "
+            else:
+                message += f"Votre carte {carte['typeCarte']} est actuellement {carte['statutCarte']}. "
+        elif 'codePin' in request and 'codePin' in carte:
+            if message:
+                message += f"Elle a pour code de pin {carte['codePin']}. "
+            else:
+                message += f"Votre carte {carte['typeCarte']} a pour code pin {carte['codePin']}. "
+    return message.strip()
 
+
+def build_message_info_operation(operation):
+    french_date_string = convert_to_french_date(operation['dateOperation'])
+    message = f"Vous avez effectué un : {operation['categorieOperation']} avec votre compte {operation['compte']['typeCompte']} le {french_date_string} avec le montant {operation['montant']} au compte de {operation['beneficiaire']['nom']} {operation['beneficiaire']['prenom']}"
+    if operation['motif'] != "Sans motif":
+        message += f" pour {operation['motif']}"
+    return message
+
+
+def get_cartes_message(request_list, cartes):
     if cartes:
         if len(cartes) == 1:
             message = ""
@@ -94,7 +98,7 @@ def get_cartes_message(request_list, cartes):
                 french_date_string = convert_to_french_date(carte['dateExpiration'])
                 message = f"Votre carte {carte['typeCarte']} expire le {french_date_string}. Elle a pour code PIN {carte['codePin']} son code de sécurité (CVV) est {carte['cvv']}.La carte est actuellement {carte['statutCarte']} et possède pour services {carte['services']}"
                 if carte['statutCarte'] == "opposée":
-                    message += f"Elle a été opposé le {carte['dateOpposition']} pour {carte['raisonOpposition']}."
+                    message += f"Elle a été opposé le {carte['dateOpposition']} pour {carte['raisonsOpposition']}."
         else:
             message = "Voici les informations de vos cartes bancaires :\n\n"
             for carte in cartes:
@@ -104,20 +108,13 @@ def get_cartes_message(request_list, cartes):
                     french_date_string = convert_to_french_date(carte['dateExpiration'])
                     message = f"Votre carte {carte['typeCarte']}  expire le {french_date_string}. Elle a pour code PIN {carte['codePin']} son code de sécurité (CVV) est {carte['cvv']}.La carte est actuellement {carte['statutCarte']} et possède pour services {carte['services']}"
                     if carte['statutCarte'] == "opposée":
-                        message += f"Elle a été opposé le {carte['dateOpposition']} pour {carte['raisonOpposition']}."
+                        message += f"Elle a été opposé le {carte['dateOpposition']} pour {carte['raisonsOpposition']}."
     else:
         message = "Aucune carte ne correspond aux informations spécifiées!"
     return message
 
 
 def get_operations_message(operations, filtered_operations):
-    def build_message_info_operation(operation):
-        french_date_string = convert_to_french_date(operation['dateOperation'])
-        message = f"Vous avez effectué un : {operation['categorieOperation']} avec votre compte {operation['compte']['typeCompte']} le {french_date_string} avec le montant {operation['montant']} au compte de {operation['beneficiaire']['nom']} {operation['beneficiaire']['prenom']}"
-        if operation['motif']:
-            message += f" pour {operation['motif']}"
-        return message
-
     message = "Voici les informations de vos opérations bancaires :"
     if filtered_operations:
         for operation in filtered_operations:
@@ -137,7 +134,7 @@ def get_comptes_message(comptes):
         else:
             message = "Voici les soldes de vos comptes bancaires :\n\n"
             for compte in comptes:
-                message += f"Il vous reste {compte['solde']} dirhams dans votre compte {compte['typeCompte']}.\n\n"
+                message += f"Il vous reste {compte['solde']} dirhams dans votre compte {compte['typeCompte']} numéro {compte['numeroCompte']}.\n\n"
         return message
     else:
         return "Désolé, je n'ai trouvé aucun compte associé à votre compte."
@@ -147,7 +144,10 @@ def get_agences_messages(agences):
     if agences:
         if len(agences) == 1:
             agence = agences[0]
-            message = f"Vous pouvez trouver notre agence {agence['nomAgence']} située au {agence['adresse']}. Elle est ouverte de {agence['horairesOuverture']} et propose les services suivants : {agence['servicesDisponibles']}. Vous pouvez également la contacter au {agence['telephone']}."
+            message = (f"Vous pouvez trouver notre agence {agence['nomAgence']} située au {agence['adresse']}. Elle "
+                       f"est ouverte de {agence['horairesOuverture']} et propose les services "
+                       f"suivants : {agence['servicesDisponibles']}. Vous pouvez également la contacter au "
+                       f"{agence['telephone']}.")
         else:
             message = "Voici les agences les plus proches :\n"
             for agence in agences:
@@ -170,7 +170,11 @@ def merge_entities(extracted_entities, new_extracted_entities):
     return {**extracted_entities, **new_extracted_entities}
 
 
-
-
-
+def extract_names(entities):
+    if entities:
+        for entity in entities:
+            if entity['entity_group'] == 'PER':
+                parts = entity['word'].split(" ")
+                return parts[0].capitalize(), parts[1].capitalize() if len(parts) > 1 else None
+    return None, None
 

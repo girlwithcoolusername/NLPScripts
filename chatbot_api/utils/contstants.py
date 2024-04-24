@@ -63,7 +63,22 @@ GREET_RESPONSES = [
     "Bonjour! Pour des raisons de sécurité, je vais devoir vous poser quelques questions rapides avant de continuer.",
     "Bonjour! Pour garantir la sécurité de votre compte, je vais d'abord devoir vérifier quelques détails avec vous."
 ]
-
+# Security Question Success
+LOGIN_SUCCESS_RESPONSES = [
+    "Merci! Que puis-je faire pour vous aujourd'hui?",
+    "Je vous remercie ! Comment puis-je vous aider aujourd'hui ?",
+    "Merci ! Quel est le motif de votre visite aujourd'hui ?",
+    "Merci ! Y a-t-il quelque chose que je peux faire pour vous aujourd'hui ?",
+    "Je vous remercie. Comment puis-je vous être utile aujourd'hui ?"
+]
+# Security Question Failure
+LOGIN_FAIL_RESPONSES = [
+    "Désolé, vous n'êtes pas autorisé à accéder à ce service.",
+    "Je suis désolé, mais vous n'avez pas l'autorisation d'accéder à ce service.",
+    "Navré, l'accès à ce service vous est refusé.",
+    "Pardon, mais vous n'êtes pas habilité à utiliser ce service.",
+    "Malheureusement, vous ne disposez pas des droits nécessaires pour accéder à ce service."
+]
 # Fallback responses
 FALLBACK_RESPONSES = [
     "Je ne suis pas sûr d'avoir compris ce que vous voulez dire. Pourriez-vous reformuler votre question ?",
@@ -91,7 +106,7 @@ MATCHING_PATTERNS = {
 }
 PATTERNS = {
     "typeCompte": r"\bcompte\s+(principal|courant|habituel|chèques|à\svue|personnel|individuel|dépôt|virtuel|épargne"
-                  r"|d'entreprise|professionnel|placement)",
+                  r"|d'entreprise|entreprise|professionnel|placement)",
     "numeroCompte": r"\b[0]{3}[0-9]{3}[a-zA-Z][0-9]{8}\b",
     "typeCarte": r"\b(MasterCard\s+(?:MOURIH|CLUB|WAJDA\s+GENERIQUE|WAJDA\s+BILA\s+HOUDOUD|LBANKALIK|FAYDA|WORLD\s"
                  r"+ELITE|CARTE\s+18-25)|VISA\s+ELECTRON\s+(?:AISANCE|KAFYA|WEB\s+PAY)|VISA\s+("

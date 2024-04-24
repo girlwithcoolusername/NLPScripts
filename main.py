@@ -1,72 +1,85 @@
+from uuid import uuid4
+
 import uvicorn
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, Depends
+from starlette.middleware.sessions import SessionMiddleware
+
+from chatbot_api.utils.bot import handle_first_request, handle_security_question, handle_request, \
+    handle_request_validation, handle_missing_entity
 from chatbot_api.utils.contstants import INTENT_ACTIONS, MODEL, TOKENIZER, LABEL_ENCODER
-from chatbot_api.utils.bot import handle_first_request, handle_security_question, handle_request
-from chatbot_api.utils.nlu import intent_recognition
 
 app = FastAPI()
-# Define global variables to track state
-context = None
-security_question = None
-entities_extracted = []
+
+# Adding session middleware to manage session data
+app.add_middleware(SessionMiddleware, secret_key="!secret")
 
 
-# Define endpoint for handling the request
+# Use this function to get the session object from request
+def get_session(request: Request):
+    return request.session
+
+
 @app.post('/')
-async def main_handle_request(request: Request):
-    global context, security_question, extracted_entities
+async def main_handle_request(request: Request, session: dict = Depends(get_session)):
+    # Initialize session if it does not exist
+    if 'session_id' not in session:
+        session['session_id'] = str(uuid4())
+        session['context'] = None
+        session['security_question'] = None
+        session['extracted_entities'] = {}
 
     # Get text data from request
     data = await request.json()
 
-    # If context is None, it means it's the first request
-    if context is None:
-        context = "first_request"
-        response, security_question = handle_first_request()
-        context = "security_question"
-        return {"response": response, "question": security_question}
+    # Logic based on context stored in session
+    context = session['context']
+    security_question = session['security_question']
+    extracted_entities = session['extracted_entities']
 
-    # If context is "security_question", handle the security question
+    # Handle first request
+    if context is None:
+        session['context'] = "first_request"
+        response, security_question = handle_first_request()
+        session['context'] = "security_question"
+        session['security_question'] = security_question
+        return {"response": response + security_question}
+
+    # Handle security question
     elif context == "security_question":
         new_context, response = handle_security_question(security_question, data)
-        if new_context:
-            context = new_context
-        else:
-            context = None
+        session['context'] = new_context if new_context else None
         return {"response": response}
 
-    # If an entity is missing in the user's answer
+    # Handle missing entity
     elif "Entity_Missing" in context:
-        intent = context.split("Entity_Missing_")[1]
-        if intent in INTENT_ACTIONS:
-            return INTENT_ACTIONS[intent]['complete_action'](data, extracted_entities, INTENT_ACTIONS[intent]["patterns"],"Missing_Entity")
+        context, response, extracted_entities = handle_missing_entity(data, context, extracted_entities, MODEL,
+                                                                      TOKENIZER, LABEL_ENCODER)
+        session['context'] = context
+        session['extracted_entities'] = extracted_entities
+        return {"response": response}
 
+    # Handle request validation
     elif "Request_Validation" in context:
-        previous_intent = context.split("Request_Validation_")[1]
-        text = data['text'].lower()
-        intent = intent_recognition(text, MODEL, TOKENIZER, LABEL_ENCODER)
-        if intent == "Confirmation_Action":
-            if previous_intent in INTENT_ACTIONS:
-                return INTENT_ACTIONS[previous_intent]['complete_action'](data, extracted_entities,
-                                                                          INTENT_ACTIONS[previous_intent]["patterns"],
-                                                                          intent)
-        elif intent == "Annulation_Action":
-            if previous_intent in INTENT_ACTIONS:
-                return INTENT_ACTIONS[previous_intent]['complete_action'](data, extracted_entities,
-                                                                          INTENT_ACTIONS[previous_intent]["patterns"],
-                                                                          intent)
-    # Otherwise, handle the user's request based on the current context
+        context, response, extracted_entities = handle_request_validation(data, context, MODEL, TOKENIZER,
+                                                                          LABEL_ENCODER, extracted_entities)
+        session['context'] = context
+        session['extracted_entities'] = extracted_entities
+        return {"response": response}
+
+    # Handle general user requests
     elif context == "user_request" or context in INTENT_ACTIONS:
-        response = None
         answer = handle_request(data, MODEL, TOKENIZER, LABEL_ENCODER)
         if len(answer) == 2:
             context, response = answer
+            session['context'] = context
         elif len(answer) == 3:
             context, response, extracted_entities = answer
+            session['context'] = context
+            session['extracted_entities'] = extracted_entities
         else:
             response = answer
         return {"response": response}
 
 
 if __name__ == "__main__":
-    uvicorn.run(app, host='localhost', port=8000)
+    uvicorn.run(app, host='0.0.0.0', port=8000)
