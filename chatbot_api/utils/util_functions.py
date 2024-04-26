@@ -100,7 +100,7 @@ def get_cartes_message(request_list, cartes):
                 if carte['statutCarte'] == "opposée":
                     message += f"Elle a été opposé le {carte['dateOpposition']} pour {carte['raisonsOpposition']}."
         else:
-            message = "Voici les informations de vos cartes bancaires :\n\n"
+            message = "Voici les informations de vos cartes bancaires :\n"
             for carte in cartes:
                 if request_list:
                     message += build_message_for_request(request_list, carte)
@@ -132,29 +132,43 @@ def get_comptes_message(comptes):
             compte = comptes[0]
             message = f"Le solde disponible sur votre compte {compte['typeCompte']} est de {compte['solde']} dirhams."
         else:
-            message = "Voici les soldes de vos comptes bancaires :\n\n"
+            message = "Voici les soldes de vos comptes bancaires :\n"
             for compte in comptes:
-                message += f"Il vous reste {compte['solde']} dirhams dans votre compte {compte['typeCompte']} numéro {compte['numeroCompte']}.\n\n"
+                message += f"Il vous reste {compte['solde']} dirhams dans votre compte {compte['typeCompte']} numéro {compte['numeroCompte']}.\n"
         return message
     else:
         return "Désolé, je n'ai trouvé aucun compte associé à votre compte."
 
 
 def get_agences_messages(agences):
+    agency = None
     if agences:
+        agency = agences[0]
         if len(agences) == 1:
             agence = agences[0]
+            msg = get_time_days(agence)
             message = (f"Vous pouvez trouver notre agence {agence['nomAgence']} située au {agence['adresse']}. Elle "
-                       f"est ouverte de {agence['horairesOuverture']} et propose les services "
+                       f"est ouverte de {msg} et propose les services "
                        f"suivants : {agence['servicesDisponibles']}. Vous pouvez également la contacter au "
                        f"{agence['telephone']}.")
         else:
             message = "Voici les agences les plus proches :\n"
             for agence in agences:
-                message += f"- {agence['nomAgence']} située au {agence['adresse']}. Elle est ouverte de {agence['horairesOuverture']} et propose les services suivants : {agence['servicesDisponibles']}. Vous pouvez également la contacter au {agence['telephone']}.\n"
+                msg = get_time_days(agence)
+                message += f"- {agence['nomAgence']} située au {agence['adresse']}. Elle est ouverte de {msg} et propose les services suivants : {agence['servicesDisponibles']}. Vous pouvez également la contacter au {agence['telephone']}.\n"
     else:
         message = "Aucune agence n'est trouvée."
-    return message
+    return [message, agency]
+
+
+def get_time_days(agence):
+    hours = agence['horairesOuverture']
+    first_day = hours.split(':')[0].split('-')[0]
+    last_day = hours.split(':')[0].split('-')[1]
+    first_time = hours.split(':')[1].split('-')[0]
+    last_time = hours.split(':')[1].split('-')[1]
+    msg = "du"+first_day+"à"+last_day+"de"+first_time+"à"+last_time
+    return msg
 
 
 def get_missing_entity_message(missing_entities):
@@ -177,4 +191,3 @@ def extract_names(entities):
                 parts = entity['word'].split(" ")
                 return parts[0].capitalize(), parts[1].capitalize() if len(parts) > 1 else None
     return None, None
-

@@ -14,7 +14,7 @@ spring_api_service = SpringAPIService(SPRING_BASE_URL, USERNAME, PASSWORD, ROLE)
 def handle_first_request():
     # Select a random security question
     security_question = random.choice(list(QUESTION_TO_FUNCTION.keys()))
-    return random.choice(GREET_RESPONSES), security_question
+    return "security_question", random.choice(GREET_RESPONSES), security_question
 
 
 def handle_security_question(security_question, data):

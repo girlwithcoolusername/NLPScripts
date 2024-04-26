@@ -1,84 +1,93 @@
-from uuid import uuid4
-
+import asyncio
+import time
 import uvicorn
-from fastapi import FastAPI, Request, Depends
-from starlette.middleware.sessions import SessionMiddleware
+from fastapi import FastAPI, Request
 
 from chatbot_api.utils.bot import handle_first_request, handle_security_question, handle_request, \
     handle_request_validation, handle_missing_entity
-from chatbot_api.utils.contstants import INTENT_ACTIONS, MODEL, TOKENIZER, LABEL_ENCODER
+from chatbot_api.utils.contstants import MODEL, LABEL_ENCODER, TOKENIZER, INTENT_ACTIONS
 
 app = FastAPI()
 
-# Adding session middleware to manage session data
-app.add_middleware(SessionMiddleware, secret_key="!secret")
+user_contexts = {}
+user_security_questions = {}
+user_extracted_entities = {}
 
 
-# Use this function to get the session object from request
-def get_session(request: Request):
-    return request.session
+@app.on_event("startup")
+async def startup_event():
+    # Start a cleanup task that runs periodically to clear expired user data
+    asyncio.create_task(cleanup_user_data())
 
 
 @app.post('/')
-async def main_handle_request(request: Request, session: dict = Depends(get_session)):
-    # Initialize session if it does not exist
-    if 'session_id' not in session:
-        session['session_id'] = str(uuid4())
-        session['context'] = None
-        session['security_question'] = None
-        session['extracted_entities'] = {}
-
-    # Get text data from request
+async def main_handle_request(request: Request):
     data = await request.json()
+    user_id = data["userId"]
 
-    # Logic based on context stored in session
-    context = session['context']
-    security_question = session['security_question']
-    extracted_entities = session['extracted_entities']
+    # Initialize user data if this is a new user
+    if user_id not in user_contexts:
+        user_contexts[user_id] = {'timestamp': time.time(), 'context': None}
+        user_security_questions[user_id] = None
+        user_extracted_entities[user_id] = {}
 
-    # Handle first request
+    # Update timestamp with each interaction
+    user_contexts[user_id]['timestamp'] = time.time()
+
+    # Retrieve specific user context information
+    context = user_contexts[user_id]['context']
+    security_question = user_security_questions[user_id]
+    extracted_entities = user_extracted_entities[user_id]
+
+    # Logic based on the context stored in the user's session
     if context is None:
-        session['context'] = "first_request"
-        response, security_question = handle_first_request()
-        session['context'] = "security_question"
-        session['security_question'] = security_question
+        context, response, security_question = handle_first_request()
+        user_contexts[user_id] = {'timestamp': time.time(), 'context': context}
+        user_security_questions[user_id] = security_question
         return {"response": response + security_question}
 
-    # Handle security question
     elif context == "security_question":
         new_context, response = handle_security_question(security_question, data)
-        session['context'] = new_context if new_context else None
+        user_contexts[user_id]['context'] = new_context if new_context else None
         return {"response": response}
 
-    # Handle missing entity
     elif "Entity_Missing" in context:
         context, response, extracted_entities = handle_missing_entity(data, context, extracted_entities, MODEL,
                                                                       TOKENIZER, LABEL_ENCODER)
-        session['context'] = context
-        session['extracted_entities'] = extracted_entities
+        user_contexts[user_id]['context'], user_extracted_entities[user_id] = context, extracted_entities
         return {"response": response}
 
-    # Handle request validation
     elif "Request_Validation" in context:
         context, response, extracted_entities = handle_request_validation(data, context, MODEL, TOKENIZER,
                                                                           LABEL_ENCODER, extracted_entities)
-        session['context'] = context
-        session['extracted_entities'] = extracted_entities
+        user_contexts[user_id]['context'], user_extracted_entities[user_id] = context, extracted_entities
         return {"response": response}
 
-    # Handle general user requests
     elif context == "user_request" or context in INTENT_ACTIONS:
         answer = handle_request(data, MODEL, TOKENIZER, LABEL_ENCODER)
         if len(answer) == 2:
-            context, response = answer
-            session['context'] = context
+            if not isinstance(answer, list):
+                context, response = answer
+            else:
+                response = answer
         elif len(answer) == 3:
             context, response, extracted_entities = answer
-            session['context'] = context
-            session['extracted_entities'] = extracted_entities
         else:
             response = answer
+        user_contexts[user_id]['context'], user_extracted_entities[user_id] = context, extracted_entities
         return {"response": response}
+
+
+async def cleanup_user_data(interval_seconds=3600):  # Clean up every hour
+    while True:
+        current_time = time.time()
+        expired_users = [user_id for user_id, user in user_contexts.items() if
+                         (current_time - user['timestamp']) > interval_seconds]
+        for user_id in expired_users:
+            del user_contexts[user_id]
+            del user_security_questions[user_id]
+            del user_extracted_entities[user_id]
+        await asyncio.sleep(interval_seconds)
 
 
 if __name__ == "__main__":
