@@ -65,7 +65,7 @@ def get_qa_chain():
     prompt_template = """
         Étant donné le contexte suivant et une question, générez une réponse basée uniquement sur ce contexte.
         Dans la réponse, essayez de fournir autant de texte que possible à partir de la section "response" dans le contexte du document source sans apporter beaucoup de modifications.
-        Si la réponse ne se trouve pas dans le contexte, veuillez dire « Veuillez contacter l'assistance en ligne ». N'essayez pas d'inventer une réponse.
+        Si la réponse ne se trouve pas dans le contexte, veuillez dire « Veuillez contacter l'assistance en ligne pour plus d'informations! ». N'essayez pas d'inventer une réponse.
     
         CONTEXT: {context}
     

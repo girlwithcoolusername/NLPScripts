@@ -81,7 +81,7 @@ def build_message_for_request(request_list, carte):
 
 def build_message_info_operation(operation):
     french_date_string = convert_to_french_date(operation['dateOperation'])
-    message = f"Vous avez effectué un : {operation['categorieOperation']} avec votre compte {operation['compte']['typeCompte']} le {french_date_string} avec le montant {operation['montant']} au compte de {operation['beneficiaire']['nom']} {operation['beneficiaire']['prenom']}"
+    message = f"Vous avez effectué un : {operation['categorieOperation']} avec votre compte {operation['compte']['typeCompte']} le {french_date_string} avec le montant {operation['montant']} dirhams au compte de {operation['beneficiaire']['nom']} {operation['beneficiaire']['prenom']}"
     if operation['motif'] != "Sans motif":
         message += f" pour {operation['motif']}"
     return message
@@ -148,14 +148,14 @@ def get_agences_messages(agences):
             agence = agences[0]
             msg = get_time_days(agence)
             message = (f"Vous pouvez trouver notre agence {agence['nomAgence']} située au {agence['adresse']}. Elle "
-                       f"est ouverte de {msg} et propose les services "
+                       f"est ouverte {msg} et propose les services "
                        f"suivants : {agence['servicesDisponibles']}. Vous pouvez également la contacter au "
                        f"{agence['telephone']}.")
         else:
             message = "Voici les agences les plus proches :\n"
             for agence in agences:
                 msg = get_time_days(agence)
-                message += f"- {agence['nomAgence']} située au {agence['adresse']}. Elle est ouverte de {msg} et propose les services suivants : {agence['servicesDisponibles']}. Vous pouvez également la contacter au {agence['telephone']}.\n"
+                message += f"- {agence['nomAgence']} située au {agence['adresse']}. Elle est ouverte {msg} et propose les services suivants : {agence['servicesDisponibles']}. Vous pouvez également la contacter au {agence['telephone']}.\n"
     else:
         message = "Aucune agence n'est trouvée."
     return [message, agency]
@@ -167,7 +167,7 @@ def get_time_days(agence):
     last_day = hours.split(':')[0].split('-')[1]
     first_time = hours.split(':')[1].split('-')[0]
     last_time = hours.split(':')[1].split('-')[1]
-    msg = "du"+first_day+"à"+last_day+"de"+first_time+"à"+last_time
+    msg = "du "+first_day+" jusqu'à "+last_day+" de "+first_time+" à "+last_time
     return msg
 
 
