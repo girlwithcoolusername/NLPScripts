@@ -52,8 +52,16 @@ async def main_handle_request(request: Request):
         return {"response": response}
 
     elif "Entity_Missing" in context:
-        context, response, extracted_entities = handle_missing_entity(data, context, extracted_entities, MODEL,
-                                                                      TOKENIZER, LABEL_ENCODER)
+        answer = handle_missing_entity(data, context, extracted_entities, MODEL, TOKENIZER, LABEL_ENCODER)
+        if len(answer) == 2:
+            if not isinstance(answer, list):
+                context, response = answer
+            else:
+                response = answer
+        elif len(answer) == 3:
+            context, response, extracted_entities = answer
+        else:
+            response = answer
         user_contexts[user_id]['context'], user_extracted_entities[user_id] = context, extracted_entities
         return {"response": response}
 
