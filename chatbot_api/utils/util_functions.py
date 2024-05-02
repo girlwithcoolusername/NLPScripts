@@ -73,7 +73,7 @@ def build_message_for_request(request_list, carte):
                 message += f"Votre carte {carte['typeCarte']} est actuellement {carte['statutCarte']}. "
         elif 'codePin' in request and 'codePin' in carte:
             if message:
-                message += f"Elle a pour code de pin {carte['codePin']}. "
+                message += f"Elle a pour code pin {carte['codePin']}. "
             else:
                 message += f"Votre carte {carte['typeCarte']} a pour code pin {carte['codePin']}. "
     return message.strip()

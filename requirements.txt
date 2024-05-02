@@ -15,3 +15,5 @@ requests~=2.31.0
 uvicorn
 fastapi
 starlette
+pytest
+pytest-asyncio

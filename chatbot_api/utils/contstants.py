@@ -46,10 +46,10 @@ ASSISTANCE_ACTION = [
 QUESTION_TO_FUNCTION = {
     # "Pouvez-vous fournir votre clé de RIB ?": provide_account_number,
     # "Pouvez-vous fournir le code PIN de votre carte crédit?": provide_card_number,
-    "Quelle est votre date de naissance ?": "provide_date_of_birth",
     "Quelle est votre adresse e-mail associée à votre compte bancaire ?": "provide_email_address",
-    "Quelle est votre adresse postale enregistrée ?": "provide_postal_address",
-    "Quel est le montant de votre dernier dépôt ou retrait ?": "provide_last_transaction_amount",
+    # "Quelle est votre adresse postale enregistrée ?": "provide_postal_address",
+    "Quelle est votre date de naissance ?": "provide_date_of_birth",
+    # "Quel est le montant de votre dernier dépôt ou retrait ?": "provide_last_transaction_amount",
     "Quel est le nom de votre agence bancaire ?": "provide_agency",
     "Pouvez-vous fournir un numéro de téléphone associé à votre compte ?": "provide_phone_number"
 }
