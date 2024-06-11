@@ -2,8 +2,8 @@ import random
 
 from chatbot_api.actions.CompleteIntentActions import CompleteIntentActions
 from chatbot_api.actions.IntentActions import IntentActions
-from chatbot_api.SecurityValidator import SecurityValidator
-from chatbot_api.SpringAPIService import SpringAPIService
+from chatbot_api.utils.SecurityValidator import SecurityValidator
+from chatbot_api.utils.SpringAPIService import SpringAPIService
 from chatbot_api.utils.contstants import GREET_RESPONSES, QUESTION_TO_FUNCTION, INTENT_ACTIONS, SPRING_BASE_URL, \
     FALLBACK_RESPONSES, USERNAME, PASSWORD, ROLE, LOGIN_SUCCESS_RESPONSES, LOGIN_FAIL_RESPONSES
 from chatbot_api.utils.nlu import intent_recognition

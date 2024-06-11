@@ -2,12 +2,28 @@ import asyncio
 import time
 import uvicorn
 from fastapi import FastAPI, Request
+from fastapi.responses import JSONResponse
 
 from chatbot_api.utils.bot import handle_first_request, handle_security_question, handle_request, \
     handle_request_validation, handle_missing_entity
 from chatbot_api.utils.contstants import MODEL, LABEL_ENCODER, TOKENIZER, INTENT_ACTIONS
 
-app = FastAPI()
+# Custom documentation for the API
+api_description = """
+This API provides endpoints for handling user requests and interactions. It supports various functionalities, including processing security questions, validating requests, and handling missing entities.
+"""
+
+app = FastAPI(
+    description=api_description  # Include the custom description
+)
+from pydantic import BaseModel
+
+class RequestData(BaseModel):
+    userId: int
+    text:str
+
+class ResponseData(BaseModel):
+    response: str
 
 user_contexts = {}
 user_security_questions = {}
@@ -20,10 +36,12 @@ async def startup_event():
     asyncio.create_task(cleanup_user_data())
 
 
-@app.post('/')
-async def main_handle_request(request: Request):
-    data = await request.json()
-    user_id = data["userId"]
+@app.post('/', response_model=ResponseData)
+async def main_handle_request(request_data: RequestData):
+    # data = await request.json()
+    # user_id = data["userId"]
+    user_id = request_data.userId
+    data = {"userId":request_data.userId,"text":request_data.text}
 
     # Initialize user data if this is a new user
     if user_id not in user_contexts:
@@ -44,12 +62,12 @@ async def main_handle_request(request: Request):
         context, response, security_question = handle_first_request()
         user_contexts[user_id] = {'timestamp': time.time(), 'context': context}
         user_security_questions[user_id] = security_question
-        return {"response": response + security_question}
+        return JSONResponse(content={"response": response + security_question}, headers={"Content-Type": "application/json; charset=utf-8"})
 
     elif context == "security_question":
         new_context, response = handle_security_question(security_question, data)
         user_contexts[user_id]['context'] = new_context if new_context else None
-        return {"response": response}
+        return JSONResponse(content={"response": response}, headers={"Content-Type": "application/json; charset=utf-8"})
 
     elif "Entity_Missing" in context:
         answer = handle_missing_entity(data, context, extracted_entities, MODEL, TOKENIZER, LABEL_ENCODER)
@@ -63,13 +81,13 @@ async def main_handle_request(request: Request):
         else:
             response = answer
         user_contexts[user_id]['context'], user_extracted_entities[user_id] = context, extracted_entities
-        return {"response": response}
+        return JSONResponse(content={"response": response}, headers={"Content-Type": "application/json; charset=utf-8"})
 
     elif "Request_Validation" in context:
         context, response, extracted_entities = handle_request_validation(data, context, MODEL, TOKENIZER,
                                                                           LABEL_ENCODER, extracted_entities)
         user_contexts[user_id]['context'], user_extracted_entities[user_id] = context, extracted_entities
-        return {"response": response}
+        return JSONResponse(content={"response": response}, headers={"Content-Type": "application/json; charset=utf-8"})
 
     elif context == "user_request" or context in INTENT_ACTIONS:
         answer = handle_request(data, MODEL, TOKENIZER, LABEL_ENCODER)
@@ -83,7 +101,7 @@ async def main_handle_request(request: Request):
         else:
             response = answer
         user_contexts[user_id]['context'], user_extracted_entities[user_id] = context, extracted_entities
-        return {"response": response}
+        return JSONResponse(content={"response": response}, headers={"Content-Type": "application/json; charset=utf-8"})
 
 
 async def cleanup_user_data(interval_seconds=3600):  # Clean up every hour

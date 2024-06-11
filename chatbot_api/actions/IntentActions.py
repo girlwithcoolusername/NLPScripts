@@ -1,6 +1,6 @@
 import random
 from chatbot_api.actions.ActionsUtils import ActionsUtils
-from chatbot_api.faq_logic.longchain_helper import get_qa_chain
+from chatbot_api.faq_logic.langchain_helper import get_qa_chain,create_vector_db
 from chatbot_api.utils.contstants import ASSISTANCE_ACTION, MATCHING_PATTERNS
 from chatbot_api.utils.nlu import entity_extraction
 from chatbot_api.utils.util_functions import filter_operations, get_cartes_message, get_operations_message, \
@@ -213,7 +213,7 @@ class IntentActions:
                         return f"Request_Validation_Gestion_Cartes_{status}", message, extracted_entities
                     elif status == "Désactivation":
                         message = (
-                            f"Vous voulez supprimer les services {', '.join(services)} pour votre carte {typeCarte}. Merci de "
+                            f"Vous voulez désactiver les services {', '.join(services)} pour votre carte {typeCarte}. Merci de "
                             f"confirmer cette demande!")
                     return f"Request_Validation_Gestion_Cartes_{status}", message, extracted_entities
                 else:
@@ -359,7 +359,7 @@ class IntentActions:
                 extracted_entities.pop('typeCarte')
                 return f"Entity_Missing_Gestion_Cartes_{status}_Plafond", message, extracted_entities
 
-    def action_plafond_augmenter(self, data, patterns, status):
+    def action_plafond_augmenter(self, data, patterns):
         return self.action_plafond_carte(data, patterns, "Augmenter")
 
     def action_plafond_diminuer(self, data, patterns):

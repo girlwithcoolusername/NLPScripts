@@ -1,6 +1,6 @@
 import unittest
 from unittest.mock import MagicMock
-from chatbot_api.SecurityValidator import SecurityValidator
+from chatbot_api.utils.SecurityValidator import SecurityValidator
 
 class TestSpringValidator(unittest.TestCase):
 
