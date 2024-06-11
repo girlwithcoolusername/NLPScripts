@@ -1,7 +1,7 @@
 import unittest
 from unittest.mock import MagicMock
 
-from chatbot_api.SpringAPIService import SpringAPIService
+from chatbot_api.utils.SpringAPIService import SpringAPIService
 
 
 class TestSpringAPIService(unittest.TestCase):

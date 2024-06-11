@@ -2,7 +2,7 @@ import unittest
 import os
 from unittest.mock import patch
 
-from chatbot_api.faq_logic.longchain_helper import create_vector_db, get_or_create_vector_db, get_qa_chain
+from chatbot_api.faq_logic.langchain_helper import create_vector_db, get_or_create_vector_db, get_qa_chain
 
 
 class TestFunctions(unittest.TestCase):

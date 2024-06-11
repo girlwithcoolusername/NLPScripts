@@ -6,7 +6,7 @@ from transformers import AutoTokenizer, CamembertForSequenceClassification
 from chatbot_api.utils.util_functions import extract_info
 
 MODEL_PATH = (r'C:\Users\HP\Documents\AAAprojet PFE\docs '
-              r'pfe\models\small_dataset\intent_recognition_by_fine_tuning_camemebert_classification_default_classifier'
+              r'pfe\models\large_dataset\intent_recognition_by_fine_tuning_camemebert_classification_default_classifier'
               r'.pt')
 LABEL_ENCODER_PATH = r'C:\Users\HP\Documents\AAAprojet PFE\docs pfe\models\label_encoder\saved_label_encoder.pkl'
 GOOGLE_CLOUD_API = 'AIzaSyDKGk7FgPTfRI84pYQMMczszd-VsnspoHQ'
@@ -107,13 +107,13 @@ MATCHING_PATTERNS = {
 PATTERNS = {
     "typeCompte": r"\bcompte\s+(principal|courant|habituel|chèques|à\svue|personnel|individuel|dépôt|virtuel|épargne"
                   r"|d'entreprise|entreprise|professionnel|placement)",
-    "numeroCompte": r"\b[0]{3}[0-9]{3}[a-zA-Z][0-9]{8}\b",
+    "numeroCompte": r"\b(?:\s?[0]){3}(?:\s?[0-9]){3}(?:\s?[a-zA-Z])(?:\s?[0-9]){9}",#\b[0]{3}[0-9]{3}[a-zA-Z][0-9]{9}\b
     "typeCarte": r"\b(MasterCard\s+(?:MOURIH|CLUB|WAJDA\s+GENERIQUE|WAJDA\s+BILA\s+HOUDOUD|LBANKALIK|FAYDA|WORLD\s"
                  r"+ELITE|CARTE\s+18-25)|VISA\s+ELECTRON\s+(?:AISANCE|KAFYA|WEB\s+PAY)|VISA\s+("
                  r"?:VISA\s+PREMIER|ESPACE|AMBITION|BILA\s+HOUDOUD|WORLD\s+ACCESS|RASMALI\s+CONFORT|RASMALI\s+AUTO\s"
                  r"+ENTRPRENEUR|BUSINESS\s+LOCALE|GOLD\s+INTERNATIONAL|SAHLA|POU\s+L|CORPORATE|PLATINIUL\s"
                  r"+INTERNATIONALE|ANA\s+MAAK\s+HIRAFI))",
-    "numeroCarte": r"^\d{4}(?:\s?\d{4}){3}$",
+    "numeroCarte": r"^(\d{16}|\d{4}(?:\s?\d{4}){3})|(?:\s?\d){16}$",#^\d{4}(?:\s?\d{4}){3}$ 
     "statutCarte": r"\b(?:active|bloquée|expirée|annulée|en cours de fabrication|en attente de réception|opposée)",
     "montant": r"\b(\d+)\s*(?=(?:dirhams?|dh|MAD)\b)",
     "categorieOperation": r"\b(?:retrait|dépôt|virement|paiement|prélèvement)",
@@ -123,9 +123,9 @@ PATTERNS = {
     "demande_cvv": r"(Card Verification Value |cvv|CVV)",
     "demande_statutCarte": r"statut",
     "demande_codePin": r"(code pin|pin|code)",
-    "rib": r"\b(\d{24}|\d{4}(?: \d{4}){5})\b",
+    "rib": r"\b(\d{24}|\d{4}(?:\s?\d{4}){5})|(?:\s?\d){24}\b",#r"\b(\d{24}|\d{4}(?: \d{4}){5})\b",
     "typeBeneficiaire": r"\b(physique|morale)",
-    "numeroFacture": r"\b(?:INV|FACT|BL|PO)[A-Za-z0-9-_]{12,19}\b",
+    "numeroFacture": r"^((?:\s?I)(?:\s?N)(?:\s?V)|(?:\s?F)(?:\s?A)(?:\s?C)(?:\s?T)|(?:\s?B)(?:\s?L)|(?:\s?P)(?:\s?O))(?:\s?[A-Za-z0-9-_]){12,19}$",#\b(?:INV|FACT|BL|PO)[A-Za-z0-9-_]{12,19}\b
     "services": r"\b(?:paiement\s+(?:en\s+ligne|sans\s+contact|à\s+l'étranger)|retrait\s+d'espèces|tous\s+les\s"
                 r"+services|assurances\s+(?:voyage|assistance)|conciergerie|rachat\s+("
                 r"?:frais|franchise)|protections\s+(?:fraudeux|achats)|remise\s+(?:immédiate|différée)|privilèges\s+("
