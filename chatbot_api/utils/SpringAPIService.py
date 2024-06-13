@@ -79,9 +79,9 @@ class SpringAPIService:
                 return response.text
         elif response.status_code in error_status:
             return response.text
-        else:
-            print(f"Unexpected response {response.status_code}: {response.text}")
-            response.raise_for_status()
+        # else:
+        #     print(f"Unexpected response {response.status_code}: {response.text}")
+        #     response.raise_for_status()
 
     def get_data(self, endpoint):
         return self._make_request('get', endpoint)

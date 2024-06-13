@@ -185,7 +185,7 @@ class CompleteIntentActions:
             if entities_ner_regex.get('services'):
                 services = entities_ner_regex.get('services')
             if entities_ner_regex.get('numeroCarte'):
-                card_number_str = entities_ner_regex.get('numeroCarte')[0]
+                card_number_str = entities_ner_regex.get('numeroCarte')[0].replace(" ", "")
                 numeroCarte = int(card_number_str)
 
         for entity in required_entities:
@@ -263,7 +263,7 @@ class CompleteIntentActions:
             elif entities_ner_regex.get('raisonsOpposition'):
                 raisonsOpposition = entities_ner_regex.get('raisonsOpposition')[0]
             elif entities_ner_regex.get('numeroCarte'):
-                card_number_str = entities_ner_regex.get('numeroCarte')[0]
+                card_number_str = entities_ner_regex.get('numeroCarte')[0].replace(" ", "")
                 if card_number_str:
                     numeroCarte = int(card_number_str)
         for entity in required_entities:
@@ -337,7 +337,7 @@ class CompleteIntentActions:
                 montant_str = entities_ner_regex.get('montant')[0]
                 plafond = int(montant_str)
             if entities_ner_regex.get('numeroCarte'):
-                card_number_str = entities_ner_regex.get('numeroCarte')[0]
+                card_number_str = entities_ner_regex.get('numeroCarte')[0].replace(" ", "")
                 numeroCarte = int(card_number_str)
 
         for entity in required_entities:
@@ -414,9 +414,9 @@ class CompleteIntentActions:
             if entities_ner_regex.get('typeCompte'):
                 typeCompte = entities_ner_regex.get('typeCompte')[0]
             if entities_ner_regex.get('rib'):
-                rib = entities_ner_regex.get('rib')[0]
+                rib = entities_ner_regex.get('rib')[0].replace(" ", "")
             if entities_ner_regex.get('numeroCompte'):
-                numeroCompte = entities_ner_regex.get('numeroCompte')[0].upper()
+                numeroCompte = entities_ner_regex.get('numeroCompte')[0].replace(" ", "").upper()
             if entities_ner_regex.get('typeOperation'):
                 typeOperation = entities_ner_regex.get('typeOperation')[0]
             if entities_ner_regex.get('montant'):
@@ -558,7 +558,7 @@ class CompleteIntentActions:
             if entities_ner_regex.get('numeroFacture'):
                 numeroFacture = entities_ner_regex.get('numeroFacture')[0].upper()
             if entities_ner_regex.get('numeroCompte'):
-                numeroCompte = entities_ner_regex.get('numeroCompte')[0].upper()
+                numeroCompte = entities_ner_regex.get('numeroCompte')[0].replace(" ", "").upper()
         for entity in required_entities:
             if locals().get(entity) is not None:
                 new_extracted_entities[entity] = locals().get(entity)

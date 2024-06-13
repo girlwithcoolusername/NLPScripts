@@ -1,6 +1,6 @@
 import random
 from chatbot_api.actions.ActionsUtils import ActionsUtils
-from chatbot_api.faq_logic.langchain_helper import get_qa_chain,create_vector_db
+from chatbot_api.faq_logic.langchain_helper import get_qa_chain, create_vector_db
 from chatbot_api.utils.contstants import ASSISTANCE_ACTION, MATCHING_PATTERNS
 from chatbot_api.utils.nlu import entity_extraction
 from chatbot_api.utils.util_functions import filter_operations, get_cartes_message, get_operations_message, \
@@ -41,8 +41,12 @@ class IntentActions:
         if entities_ner_regex:
             for patternName, value in entities_ner_regex.items():
                 if value:
-                    entities_dict[patternName] = value[0]
+                    if patternName == "numeroCompte":
+                        entities_dict[patternName] = value[0].replace(" ", "").upper()
+                    else:
+                        entities_dict[patternName] = value[0]
             response_body = {"userId": userid, "entitiesDic": entities_dict}
+            print(response_body)
             comptes = self.spring_api.post_data_check('comptes/searchEntitiesDict', response_body)
             return get_comptes_message(comptes)
         else:
@@ -60,7 +64,7 @@ class IntentActions:
                 if value:
                     if 'demande_' not in patternName:
                         if patternName == "numeroCarte":
-                            entities_dict[patternName] = int(value[0])
+                            entities_dict[patternName] = int(value[0].replace(" ",""))
                         else:
                             entities_dict[patternName] = value[0]
                     else:
@@ -88,6 +92,7 @@ class IntentActions:
                     else:
                         entities_dict[patternName] = value[0]
             response_body = {"userId": userid, "entitiesDic": entities_dict}
+            print(response_body)
             operations = self.spring_api.post_data_check('operations/searchEntitiesDict', response_body)
 
         if operations:
@@ -189,7 +194,7 @@ class IntentActions:
             if entities_ner_regex.get('services'):
                 services = entities_ner_regex.get('services')
             if entities_ner_regex.get('numeroCarte'):
-                numero_carte_str = entities_ner_regex.get('numeroCarte')[0]
+                numero_carte_str = entities_ner_regex.get('numeroCarte')[0].replace(" ", "")
                 numeroCarte = int(numero_carte_str)
 
         for entity in required_entities:
@@ -253,7 +258,7 @@ class IntentActions:
             if entities_ner_regex.get('raisonsOpposition'):
                 raisonsOpposition = entities_ner_regex.get('raisonsOpposition')[0]
             if entities_ner_regex.get('numeroCarte'):
-                numero_carte_str = entities_ner_regex.get('numeroCarte')[0]
+                numero_carte_str = entities_ner_regex.get('numeroCarte')[0].replace(" ", "")
                 if numero_carte_str:
                     numeroCarte = int(numero_carte_str)
         # Check for each required entity
@@ -311,7 +316,7 @@ class IntentActions:
                 montant_str = entities_ner_regex.get('montant')[0]
                 plafond = int(montant_str)
             if entities_ner_regex.get('numeroCarte'):
-                card_number_str = entities_ner_regex.get('numeroCarte')[0]
+                card_number_str = entities_ner_regex.get('numeroCarte')[0].replace(" ", "")
                 numeroCarte = int(card_number_str)
 
         for entity in required_entities:
@@ -379,9 +384,9 @@ class IntentActions:
             if entities_ner_regex.get('typeCompte'):
                 typeCompte = entities_ner_regex.get('typeCompte')[0]
             if entities_ner_regex.get('rib'):
-                rib = entities_ner_regex.get('rib')[0]
+                rib = entities_ner_regex.get('rib')[0].replace(" ", "")
             if entities_ner_regex.get('numeroCompte'):
-                numeroCompte = entities_ner_regex.get('numeroCompte')[0].upper()
+                numeroCompte = entities_ner_regex.get('numeroCompte')[0].replace(" ", "").upper()
             if entities_ner_regex.get('typeOperation'):
                 typeOperation = entities_ner_regex.get('typeOperation')[0]
             if entities_ner_regex.get('montant'):
@@ -420,7 +425,7 @@ class IntentActions:
             if entities_ner_regex.get('numeroFacture'):
                 numeroFacture = entities_ner_regex.get('numeroFacture')[0].upper()
             if entities_ner_regex.get('numeroCompte'):
-                numeroCompte = entities_ner_regex.get('numeroCompte')[0].upper()
+                numeroCompte = entities_ner_regex.get('numeroCompte')[0].replace(" ", "").upper()
         for entity in required_entities:
             if locals().get(entity) is None:
                 missing_entities.append(entity)

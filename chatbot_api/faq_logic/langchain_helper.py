@@ -15,8 +15,8 @@ os.environ["HF_TOKEN"] = HF_TOKEN
 # Create Google Palm LLM model
 llm = GoogleGenerativeAI(model="models/gemini-1.0-pro-001", google_api_key=GOOGLE_CLOUD_API, temperature=0.1)
 
-vectordb_file_path = r"C:\Users\HP\Documents\AAAprojet PFE\NLPScripts\chatbot_api\faq_logic\faiss_index"
-dataset_path = (r"C:\Users\HP\Documents\AAAprojet PFE\NLPScripts\chatbot_api\faq_logic\Dataset-NLP-for-Text-Generation"
+vectordb_file_path = r"C:\Users\HP\Documents\AProjetPFE\NLPScripts\chatbot_api\faq_logic\faiss_index"
+dataset_path = (r"C:\Users\HP\Documents\AProjetPFE\NLPScripts\chatbot_api\faq_logic\Dataset-NLP-for-Text-Generation"
                 r".csv")
 
 model_name = "dangvantuan/sentence-camembert-large"

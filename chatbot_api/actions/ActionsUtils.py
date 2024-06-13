@@ -40,7 +40,7 @@ class ActionsUtils:
         return cartes
 
     def which_rib(self, userid, ribs):
-        rib = ribs[0].upper()
+        rib = ribs[0].replace(" ","")
         response_body = {
             "userId": userid,
             "beneficiaire": rib
@@ -49,50 +49,50 @@ class ActionsUtils:
 
         return beneficiaire
 
-    def extract_entities(self, entities_ner_regex, userid,action_type):
+    def extract_entities(self, entities_ner_regex, userid, action_type):
         typeBeneficiaire, rib, newRib = self.extract_additional_info(entities_ner_regex, action_type, userid)
         return typeBeneficiaire, rib, newRib
 
     def extract_additional_info(self, entities, action_type, userid):
         typeBeneficiaire = None
-        rib,newRib = None,None
+        rib, newRib = None, None
         if entities.get('typeBeneficiaire'):
             typeBeneficiaire = entities.get('typeBeneficiaire')[0]
         if entities.get('rib'):
-            ribs = entities.get('rib')
+            ribs = [rib.replace(" ", "") for rib in entities.get('rib')]
             rib, newRib = self.determine_ribs(ribs, action_type, userid)
         return typeBeneficiaire, rib, newRib
 
     def determine_ribs(self, ribs, action_type, userid):
         if len(ribs) == 2:
-            return (ribs[0].upper(), ribs[1].upper()) if self.which_rib(userid, ribs) else (
-                ribs[1].upper(), ribs[0].upper())
+            return (ribs[0], ribs[1]) if self.which_rib(userid, ribs) else (
+                ribs[1], ribs[0])
         else:
             if action_type == "modification":
-                return (ribs[0].upper(), None) if self.which_rib(userid, ribs) else (None, ribs[0].upper())
+                return (ribs[0], None) if self.which_rib(userid, ribs) else (None, ribs[0])
             else:
-                (ribs[0].upper(), None)
+                return ribs[0], None
 
     def determine_ribs_complete_action(self, ribs, action_type, userid, context, extracted_entities):
         if len(ribs) == 2:
             # Determine the primary RIB based on some user-specific condition
-            return (ribs[0].upper(), ribs[1].upper()) if self.which_rib(userid, ribs) else (
-                ribs[1].upper(), ribs[0].upper())
+            return (ribs[0], ribs[1]) if self.which_rib(userid, ribs) else (
+                ribs[1], ribs[0])
         else:
             if action_type == "modification" and context == "Missing_Entity":
                 # Decide based on what's currently missing and what the user provided
                 if 'besoin_ribBeneficiaire' in extracted_entities:
                     if 'rib' in extracted_entities:
-                        return (extracted_entities['rib'], ribs[0].upper())
+                        return (extracted_entities['rib'], ribs[0])
                     else:
-                        return (ribs[0].upper(), None) if self.which_rib(userid, ribs) else (None, ribs[0].upper())
+                        return (ribs[0], None) if self.which_rib(userid, ribs) else (None, ribs[0])
                 else:
-                    return (None, ribs[0].upper())
+                    return (None, ribs[0])
             else:
-                return (ribs[0].upper(), None)
+                return (ribs[0], None)
 
     def extract_additional_info_complete(self, entities, action_type, userid, context, extracted_entities):
-        typeBeneficiaire, rib, newRib = None,None,None
+        typeBeneficiaire, rib, newRib = None, None, None
         if entities.get('typeBeneficiaire'):
             typeBeneficiaire = entities.get('typeBeneficiaire')[0]
         if entities.get('rib'):
